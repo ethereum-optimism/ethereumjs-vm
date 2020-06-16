@@ -933,6 +933,7 @@ test('blockchain test', (t) => {
           resolve()
         })
       })
+
       await putBlockPromise
       st.end()
     })
