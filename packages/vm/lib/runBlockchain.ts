@@ -16,6 +16,7 @@ export default function runBlockchain(this: VM, blockchain: Blockchain): Promise
 
     // setup blockchain iterator
     blockchain.iterator('vm', processBlock, (err: Error) => {
+      
       if (err) {
         reject(err)
       } else {
