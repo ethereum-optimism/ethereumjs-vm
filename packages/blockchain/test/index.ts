@@ -659,10 +659,14 @@ test('blockchain test', (t) => {
         return st.error(err)
       }
 
+      if (!genesis) {
+        return st.fail('genesis not defined!')
+      }
+      
       const blockchain = new Blockchain({ db: db })
 
       let hashToNumberPromise = new Promise((resolve, reject) => {
-        blockchain._hashToNumber(genesis.hash(), (err: Error | undefined, number: BN) => {
+        blockchain._hashToNumber(genesis?.hash(), (err: Error | undefined, number: BN) => {
           st.equals(number.toString(10), '0', 'should perform _hashToNumber correctly')
           resolve(err)
         })
@@ -917,20 +921,18 @@ test('blockchain test', (t) => {
                 return st.error(err)
               }
               st.equals(
-                getBlock.hash().toString('hex'),
+                getBlock?.hash().toString('hex'),
                 block.hash().toString('hex'),
                 'should update latest block',
               )
               resolve()
             })
           })
-
           await getLatestBlockPromise
 
           resolve()
         })
       })
-
       await putBlockPromise
       st.end()
     })
