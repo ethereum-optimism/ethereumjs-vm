@@ -25,14 +25,15 @@ test('blockchain test', (t) => {
 
     st.throws(() => {
       new Blockchain({ chain: 'ropsten', common })
-    }, "initializing with both chain/common is not allowed")
+    }, 'initializing with both chain/common is not allowed')
 
     const blockchain0 = new Blockchain({ chain: 'ropsten' })
     const blockchain1 = new Blockchain({ common })
 
     let heads: any = []
 
-    let p0 = new Promise((resolve, reject) => {blockchain0.getHead(function(err?: any, head?: any) {
+    let p0 = new Promise((resolve, reject) => {
+      blockchain0.getHead(function(err?: any, head?: any) {
         st.error(err, 'no error initializing with one parameter')
         resolve(head)
       })
@@ -40,7 +41,8 @@ test('blockchain test', (t) => {
       st.comment(err.message)
     })
 
-    let p1 = new Promise((resolve, reject) => {blockchain1.getHead(function(err?: any, head?: any) {
+    let p1 = new Promise((resolve, reject) => {
+      blockchain1.getHead(function(err?: any, head?: any) {
         st.error(err, 'no error initializing with one parameter')
         resolve(head)
       })
@@ -720,7 +722,7 @@ test('blockchain test', (t) => {
         }
         blockchain = new Blockchain({ db: db, validateBlocks: true, validatePow: false })
 
-        const seriesFn = async() => {
+        const seriesFn = async () => {
           const getLatestHeaderPromise = new Promise((resolve, reject) => {
             blockchain.getLatestHeader((err?: Error, latest?: any) => {
               if (err) {
@@ -792,8 +794,8 @@ test('blockchain test', (t) => {
       await putBlockPromise
 
       const cacheCheckPromise = new Promise((resolve, reject) => {
-          block.header.extraData = Buffer.from([1])
-          blockchain.getBlock(1, (err?: Error, block?: Block) => {
+        block.header.extraData = Buffer.from([1])
+        blockchain.getBlock(1, (err?: Error, block?: Block) => {
           if (err) {
             return st.error(err)
           }
@@ -922,13 +924,13 @@ test('blockchain test', (t) => {
               resolve()
             })
           })
-          
+
           await getLatestBlockPromise
 
           resolve()
         })
       })
-      
+
       await putBlockPromise
       st.end()
     })
