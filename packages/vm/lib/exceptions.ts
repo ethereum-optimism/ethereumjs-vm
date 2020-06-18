@@ -12,6 +12,10 @@ export enum ERROR {
   STOP = 'stop',
   REFUND_EXHAUSTED = 'refund exhausted',
   VALUE_OVERFLOW = 'value overflow',
+
+  // BLS errors
+  BLS_12_381_INVALID_INPUT_LENGTH = 'invalid input length',
+  BLS_12_381_POINT_NOT_ON_CURVE = 'point not on curve',
 }
 
 export class VmError {

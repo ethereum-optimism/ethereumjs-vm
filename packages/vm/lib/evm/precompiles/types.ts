@@ -3,7 +3,7 @@ import Common from '@ethereumjs/common'
 import { ExecResult } from '../evm'
 
 export interface PrecompileFunc {
-  (opts: PrecompileInput): ExecResult
+  (opts: PrecompileInput): Promise<ExecResult> | ExecResult
 }
 
 export interface PrecompileInput {
