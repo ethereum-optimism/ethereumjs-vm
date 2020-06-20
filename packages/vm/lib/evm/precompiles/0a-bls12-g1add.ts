@@ -4,13 +4,10 @@ import { VmErrorResult, ExecResult } from '../evm'
 import { ERROR, VmError } from '../../exceptions'
 const assert = require('assert')
 
-const mcl = require('mcl-wasm')
-let mclInitPromise = mcl.init(mcl.BLS12_381)
-
 export default async function (opts: PrecompileInput): Promise<ExecResult> {
   assert(opts.data)
 
-  await mclInitPromise
+  const mcl = opts._VM._mcl
 
   let inputData = opts.data
 
@@ -38,7 +35,6 @@ export default async function (opts: PrecompileInput): Promise<ExecResult> {
     }
   }
 
-  //0000000000000000000000000000000012196c5a43d69224d8713389285f26b98f86ee910ab3dd668e413738282003cc5b7357af9a7af54bb713d62255e80f56
   let p1_x = opts.data.slice(16, 64).toString('hex')
   let p1_y = opts.data.slice(80, 128).toString('hex')
   let p2_x = opts.data.slice(144, 192).toString('hex')
