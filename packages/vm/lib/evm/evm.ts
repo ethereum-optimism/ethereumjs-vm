@@ -384,7 +384,7 @@ export default class EVM {
       data,
       gasLimit,
       _common: this._vm._common,
-      _VM: this._vm
+      _VM: this._vm,
     }
 
     return code(opts)

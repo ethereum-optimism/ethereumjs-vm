@@ -15,8 +15,7 @@ import runBlockchain from './runBlockchain'
 const AsyncEventEmitter = require('async-eventemitter')
 const promisify = require('util.promisify')
 const mcl = require('mcl-wasm')
-const mclInitPromise = mcl.init(mcl.BLS12_381)  // We can use the same instance of mcl for all VMs. The methods are static.
-
+const mclInitPromise = mcl.init(mcl.BLS12_381) // We can use the same instance of mcl for all VMs. The methods are static.
 
 /**
  * Options for instantiating a [[VM]].
