@@ -4,6 +4,7 @@ import { VmErrorResult, ExecResult } from '../evm'
 import { ERROR, VmError } from '../../exceptions'
 const assert = require('assert')
 const { padToEven } = require('ethereumjs-util')
+const { BLS12_381_ToG1Point, BLS12_381_FromG1Point } = require('./util/bls12_381')
 
 export default async function (opts: PrecompileInput): Promise<ExecResult> {
   assert(opts.data)
@@ -18,9 +19,7 @@ export default async function (opts: PrecompileInput): Promise<ExecResult> {
     return VmErrorResult(new VmError(ERROR.BLS_12_381_INVALID_INPUT_LENGTH), gasUsed)
   }
 
-  // TODO: move this whole input decoding stuff to an utility file
-
-  // check zero bytes
+  // check if some parts of input are zero bytes.
   const zeroBytes16 = Buffer.alloc(16, 0)
   const zeroByteCheck = [
     [0, 16],
@@ -36,38 +35,16 @@ export default async function (opts: PrecompileInput): Promise<ExecResult> {
     }
   }
 
-  let p1_x = opts.data.slice(16, 64).toString('hex')
-  let p1_y = opts.data.slice(80, 128).toString('hex')
-  let p2_x = opts.data.slice(144, 192).toString('hex')
-  let p2_y = opts.data.slice(208, 256).toString('hex')
+  // TODO: verify that point is on G1
 
-  // build the string to feed into mcl
+  // convert input to mcl G1 points, add them, and convert the output to a Buffer.
 
-  let p1str = '1 ' + p1_x + ' ' + p1_y
-  let p2str = '1 ' + p2_x + ' ' + p2_y
+  let mclPoint1 = BLS12_381_ToG1Point(opts.data.slice(0, 128), mcl)
+  let mclPoint2 = BLS12_381_ToG1Point(opts.data.slice(128, 256), mcl)
 
-  let mclPoint1 = new mcl.G1()
-  let mclPoint2 = new mcl.G1()
+  const result = mcl.add(mclPoint1, mclPoint2)
 
-  mclPoint1.setStr(p1str, 16)
-  mclPoint2.setStr(p2str, 16)
-
-  let result = mcl.add(mclPoint1, mclPoint2)
-
-  // TODO: figure out if there is a better way to decode these values.
-  let decodeStr = result.getStr(16) //1 <x_coord> <y_coord>
-  let decoded = decodeStr.match(/"?[0-9a-f]+"?/g) // match above pattern.
-
-  // note: decoded[0] == 1
-  let xval = padToEven(decoded[1])
-  let yval = padToEven(decoded[2])
-
-  // convert to buffers.
-
-  let xBuffer = Buffer.concat([Buffer.alloc(64 - xval.length / 2, 0), Buffer.from(xval, 'hex')])
-  let yBuffer = Buffer.concat([Buffer.alloc(64 - yval.length / 2, 0), Buffer.from(yval, 'hex')])
-
-  let returnValue = Buffer.concat([xBuffer, yBuffer])
+  const returnValue = BLS12_381_FromG1Point(result)
 
   return {
     gasUsed,
