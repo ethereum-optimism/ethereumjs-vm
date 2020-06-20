@@ -30,11 +30,15 @@ tape('Berlin BLS tests', (t) => {
                 to: Buffer.from(BLS_G1ADD_Address, 'hex'),
                 value: new BN(0),
                 data: Buffer.from(input, 'hex')
-          })
+            })
           
-          if (result.execResult.returnValue.toString('hex') != output) {
-            st.fail("BLS G1ADD return value is not the expected value")
-          }
+            if (result.execResult.returnValue.toString('hex') != output) {
+                st.fail("BLS G1ADD return value is not the expected value")
+            }
+
+            if (!result.execResult.gasUsed.eq(new BN(600))) {
+                st.fail("BLS G1ADD gas used is incorrect")
+            }
         }
 
         st.pass("BLS G1ADD output is correct")
@@ -42,6 +46,6 @@ tape('Berlin BLS tests', (t) => {
         st.end()
     })
 
-    // TODO: add tests checking for failures (i.e. input length incorrect; input values not on curve)
+    // TODO: add G1 tests checking for failures (i.e. input length incorrect; input values not on curve)
   })
 

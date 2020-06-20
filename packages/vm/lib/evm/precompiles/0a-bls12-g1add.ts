@@ -13,7 +13,8 @@ export default async function (opts: PrecompileInput): Promise<ExecResult> {
 
   let inputData = opts.data
 
-  let gasUsed = new BN(0) // TODO: add specific gas used to Common
+  // note: the gas used is constant; even if the input is incorrect.
+  let gasUsed = new BN(opts._common.param('gasPrices', 'Bls12381G1AddGas'))
 
   if (inputData.length != 256) {
     return VmErrorResult(new VmError(ERROR.BLS_12_381_INVALID_INPUT_LENGTH), gasUsed)
