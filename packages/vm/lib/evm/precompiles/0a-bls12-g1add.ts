@@ -3,6 +3,7 @@ import { PrecompileInput } from './types'
 import { VmErrorResult, ExecResult } from '../evm'
 import { ERROR, VmError } from '../../exceptions'
 const assert = require('assert')
+const { padToEven } = require('ethereumjs-util')
 
 export default async function (opts: PrecompileInput): Promise<ExecResult> {
   assert(opts.data)
@@ -57,24 +58,13 @@ export default async function (opts: PrecompileInput): Promise<ExecResult> {
   let decodeStr = result.getStr(16) //1 <x_coord> <y_coord>
   let decoded = decodeStr.match(/"?[0-9a-f]+"?/g) // match above pattern.
 
-  // decoded[0] == 1
-  let xval = decoded[1]
-  let yval = decoded[2]
-
-  // ensure padding is right.
-
-  if (xval.length % 2 != 0) {
-    xval = '0' + xval
-  }
-
-  if (yval.length % 2 != 0) {
-    yval = '0' + yval
-  }
+  // note: decoded[0] == 1
+  let xval = padToEven(decoded[1])
+  let yval = padToEven(decoded[2])
 
   // convert to buffers.
 
   let xBuffer = Buffer.concat([Buffer.alloc(64 - xval.length / 2, 0), Buffer.from(xval, 'hex')])
-
   let yBuffer = Buffer.concat([Buffer.alloc(64 - yval.length / 2, 0), Buffer.from(yval, 'hex')])
 
   let returnValue = Buffer.concat([xBuffer, yBuffer])
