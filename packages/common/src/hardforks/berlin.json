@@ -38,7 +38,7 @@
     "Bls12381MapG2Gas": {
       "v": 110000,
       "d": "Gas cost of BLS12-381 map field element to G2"
-    }, 
+    }
   },
   "vm": {},
   "pow": {}
