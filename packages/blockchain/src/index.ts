@@ -254,25 +254,28 @@ export default class Blockchain implements BlockchainInterface {
    */
   _init(cb: any): void {
     const self = this
-
-    async.waterfall(
-      [(cb: any) => self._numberToHash(new BN(0), cb), callbackify(getHeads.bind(this))],
-      (err) => {
+    new Promise((resolve, reject) => {
+        self._numberToHash(new BN(0), function(error: any, hash: any) {
+          if (error) {
+            reject(error)
+          } else {
+            resolve(hash)
+          }
+        })
+    }).then(async function(hash) {
+      await getHeads(hash)
+      cb()
+    }).catch(function(err) {
+      self._setCanonicalGenesisBlock((err?: any) => {
         if (err) {
-          // if genesis block doesn't exist, create one
-          return self._setCanonicalGenesisBlock((err?: any) => {
-            if (err) {
-              return cb(err)
-            }
-            self._heads = {}
-            self._headHeader = self._genesis
-            self._headBlock = self._genesis
-            cb()
-          })
+          return cb(err)
         }
+        self._heads = {}
+        self._headHeader = self._genesis
+        self._headBlock = self._genesis
         cb()
-      },
-    )
+      })
+    })
 
     async function getHeads(genesisHash: any) {
       self._genesis = genesisHash
