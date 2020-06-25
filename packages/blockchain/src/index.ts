@@ -15,6 +15,7 @@ import {
   numberToHashKey,
   tdKey,
 } from './util'
+import { promisify } from 'util'
 
 const Stoplight = require('flow-stoplight')
 const level = require('level-mem')
@@ -390,13 +391,29 @@ export default class Blockchain implements BlockchainInterface {
    * @param cb - The callback. It is given two parameters `err` and the last of the saved `blocks`
    */
   putBlocks(blocks: Array<any>, cb: any) {
-    async.eachSeries(
-      blocks,
-      (block, done) => {
-        this.putBlock(block, done)
-      },
-      cb,
-    )
+    const self = this;
+    async function _putBlock(block: any): Promise<any> {
+      return await new Promise((resolve, reject) => {
+        self.putBlock(block, function(err: any, block: any) {
+          resolve([err, block])
+        })
+      })
+    }
+
+
+    async function _putArray() {
+      let retVal = []
+      for (let i = 0; i < blocks.length; i++) {
+        retVal = await _putBlock(blocks[i])
+        if (retVal[0]) { // this is not undefined if there's an error
+          break
+        }
+      }
+      cb(retVal[0], retVal[1])
+    }
+
+    _putArray()
+
   }
 
   /**
@@ -422,13 +439,28 @@ export default class Blockchain implements BlockchainInterface {
    * @param cb - The callback. It is given two parameters `err` and the last of the saved `headers`
    */
   putHeaders(headers: Array<any>, cb: any) {
-    async.eachSeries(
-      headers,
-      (header, done) => {
-        this.putHeader(header, done)
-      },
-      cb,
-    )
+    const self = this;
+    async function _putHeader(block: any): Promise<any> {
+      return await new Promise((resolve, reject) => {
+        self.putHeader(block, function(err: any, block: any) {
+          resolve([err, block])
+        })
+      })
+    }
+
+
+    async function _putArray() {
+      let retVal = []
+      for (let i = 0; i < headers.length; i++) {
+        retVal = await _putHeader(headers[i])
+        if (retVal[0]) {  // this is not undefined if there's an error
+          break
+        }
+      }
+      cb(retVal[0], retVal[1])
+    }
+
+    _putArray()
   }
 
   /**
@@ -469,30 +501,56 @@ export default class Blockchain implements BlockchainInterface {
       return cb(new Error('Chain mismatch while trying to put block or header'))
     }
 
-    async.series(
-      [
-        async.asyncify(async function () {
-          if (!self._validateBlocks) {
-            return
-          }
+    async function validateBlock() {
+      if (!self._validateBlocks) {
+        return
+      }
 
-          if (!isGenesis && block.isGenesis()) {
-            throw new Error('already have genesis set')
-          }
+      if (!isGenesis && block.isGenesis()) {
+        throw new Error('already have genesis set')
+      }
 
-          await block.validate(self)
-          return
-        }),
-        verifyPOW,
-        getCurrentTd,
-        getBlockTd,
-        rebuildInfo,
-        (cb) => {
-          return self._batchDbOps(dbOps.concat(self._saveHeadOps()), cb)
-        },
-      ],
-      cb,
-    )
+      await block.validate(self)
+      return
+    }
+
+    function promisify(func: Function) {
+      return function() {
+        return new Promise((resolve, reject) => {
+          func(function(err: any) {
+            if (err) {
+              reject(err)
+            } else {
+              resolve()
+            }
+          })
+        })
+      }
+    }
+
+    validateBlock().then(
+      promisify(verifyPOW)
+    ).then(
+      promisify(getCurrentTd)
+    ).then(
+      promisify(getBlockTd)
+    ).then(
+      promisify(rebuildInfo)
+    ).then(function() {
+      return new Promise((resolve, reject) => {
+        self._batchDbOps(dbOps.concat(self._saveHeadOps()), function(err: any) {
+          if (err) {
+            reject(err)
+          } else {
+            resolve()
+          }
+        })
+      })
+    }).then(function() {
+      cb()
+    }).catch(function(err: any) {
+      cb(err)
+    })
 
     function verifyPOW(next: any) {
       if (!self._validatePow) {
@@ -510,21 +568,30 @@ export default class Blockchain implements BlockchainInterface {
         currentTd.block = new BN(0)
         return next()
       }
-      async.parallel(
-        [
-          (cb) =>
-            self._getTd(self._headHeader, (err?: any, td?: any) => {
-              currentTd.header = td
-              cb(err)
-            }),
-          (cb) =>
-            self._getTd(self._headBlock, (err?: any, td?: any) => {
-              currentTd.block = td
-              cb(err)
-            }),
-        ],
-        next,
-      )
+
+      // set total difficulty in the current context scope.
+      // tdArgument: argument to pass to _getTd
+      // attribute: the attribute of currentTd to write the returned data to.
+      function setTD(tdArgument: any, attribute: string) {
+        return new Promise((resolve, reject) => {
+          self._getTd(tdArgument, (err?: any, td?: any) => {
+            currentTd[attribute] = td
+            if (err) {
+              reject(err)
+            }
+            resolve()
+          })
+        })
+      }
+
+      Promise.all([
+        setTD(self._headHeader, "header"),
+        setTD(self._headBlock, "block")
+      ]).then(function(){
+        next()
+      }).catch(function(err: any) {
+        next(err)
+      })
     }
 
     function getBlockTd(next: any) {

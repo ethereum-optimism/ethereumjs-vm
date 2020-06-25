@@ -805,7 +805,7 @@ test('blockchain test', (t) => {
           }
           st.equals(
             cachedHash.toString('hex'),
-            block.hash().toString('hex'),
+            block?.hash().toString('hex'),
             'should not modify cached objects',
           )
           resolve()
