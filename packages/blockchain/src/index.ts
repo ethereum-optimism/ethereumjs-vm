@@ -256,27 +256,29 @@ export default class Blockchain implements BlockchainInterface {
   _init(cb: any): void {
     const self = this
     new Promise((resolve, reject) => {
-        self._numberToHash(new BN(0), function(error: any, hash: any) {
-          if (error) {
-            reject(error)
-          } else {
-            resolve(hash)
-          }
-        })
-    }).then(async function(hash) {
-      await getHeads(hash)
-      cb()
-    }).catch(function(err) {
-      self._setCanonicalGenesisBlock((err?: any) => {
-        if (err) {
-          return cb(err)
+      self._numberToHash(new BN(0), function(error: any, hash: any) {
+        if (error) {
+          reject(error)
+        } else {
+          resolve(hash)
         }
-        self._heads = {}
-        self._headHeader = self._genesis
-        self._headBlock = self._genesis
-        cb()
       })
     })
+      .then(async function(hash) {
+        await getHeads(hash)
+        cb()
+      })
+      .catch(function(err) {
+        self._setCanonicalGenesisBlock((err?: any) => {
+          if (err) {
+            return cb(err)
+          }
+          self._heads = {}
+          self._headHeader = self._genesis
+          self._headBlock = self._genesis
+          cb()
+        })
+      })
 
     async function getHeads(genesisHash: any) {
       self._genesis = genesisHash
@@ -391,7 +393,7 @@ export default class Blockchain implements BlockchainInterface {
    * @param cb - The callback. It is given two parameters `err` and the last of the saved `blocks`
    */
   putBlocks(blocks: Array<any>, cb: any) {
-    const self = this;
+    const self = this
     async function _putBlock(block: any): Promise<any> {
       return await new Promise((resolve, reject) => {
         self.putBlock(block, function(err: any, block: any) {
@@ -400,12 +402,12 @@ export default class Blockchain implements BlockchainInterface {
       })
     }
 
-
     async function _putArray() {
       let retVal = []
       for (let i = 0; i < blocks.length; i++) {
         retVal = await _putBlock(blocks[i])
-        if (retVal[0]) { // this is not undefined if there's an error
+        if (retVal[0]) {
+          // this is not undefined if there's an error
           break
         }
       }
@@ -413,7 +415,6 @@ export default class Blockchain implements BlockchainInterface {
     }
 
     _putArray()
-
   }
 
   /**
@@ -439,7 +440,7 @@ export default class Blockchain implements BlockchainInterface {
    * @param cb - The callback. It is given two parameters `err` and the last of the saved `headers`
    */
   putHeaders(headers: Array<any>, cb: any) {
-    const self = this;
+    const self = this
     async function _putHeader(block: any): Promise<any> {
       return await new Promise((resolve, reject) => {
         self.putHeader(block, function(err: any, block: any) {
@@ -448,12 +449,12 @@ export default class Blockchain implements BlockchainInterface {
       })
     }
 
-
     async function _putArray() {
       let retVal = []
       for (let i = 0; i < headers.length; i++) {
         retVal = await _putHeader(headers[i])
-        if (retVal[0]) {  // this is not undefined if there's an error
+        if (retVal[0]) {
+          // this is not undefined if there's an error
           break
         }
       }
@@ -528,29 +529,28 @@ export default class Blockchain implements BlockchainInterface {
       }
     }
 
-    validateBlock().then(
-      promisify(verifyPOW)
-    ).then(
-      promisify(getCurrentTd)
-    ).then(
-      promisify(getBlockTd)
-    ).then(
-      promisify(rebuildInfo)
-    ).then(function() {
-      return new Promise((resolve, reject) => {
-        self._batchDbOps(dbOps.concat(self._saveHeadOps()), function(err: any) {
-          if (err) {
-            reject(err)
-          } else {
-            resolve()
-          }
+    validateBlock()
+      .then(promisify(verifyPOW))
+      .then(promisify(getCurrentTd))
+      .then(promisify(getBlockTd))
+      .then(promisify(rebuildInfo))
+      .then(function() {
+        return new Promise((resolve, reject) => {
+          self._batchDbOps(dbOps.concat(self._saveHeadOps()), function(err: any) {
+            if (err) {
+              reject(err)
+            } else {
+              resolve()
+            }
+          })
         })
       })
-    }).then(function() {
-      cb()
-    }).catch(function(err: any) {
-      cb(err)
-    })
+      .then(function() {
+        cb()
+      })
+      .catch(function(err: any) {
+        cb(err)
+      })
 
     function verifyPOW(next: any) {
       if (!self._validatePow) {
@@ -584,14 +584,13 @@ export default class Blockchain implements BlockchainInterface {
         })
       }
 
-      Promise.all([
-        setTD(self._headHeader, "header"),
-        setTD(self._headBlock, "block")
-      ]).then(function(){
-        next()
-      }).catch(function(err: any) {
-        next(err)
-      })
+      Promise.all([setTD(self._headHeader, 'header'), setTD(self._headBlock, 'block')])
+        .then(function() {
+          next()
+        })
+        .catch(function(err: any) {
+          next(err)
+        })
     }
 
     function getBlockTd(next: any) {

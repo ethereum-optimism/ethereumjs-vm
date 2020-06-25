@@ -662,7 +662,7 @@ test('blockchain test', (t) => {
       if (!genesis) {
         return st.fail('genesis not defined!')
       }
-      
+
       const blockchain = new Blockchain({ db: db })
 
       let hashToNumberPromise = new Promise((resolve, reject) => {
