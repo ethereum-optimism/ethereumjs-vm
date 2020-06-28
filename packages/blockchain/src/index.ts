@@ -1,4 +1,3 @@
-import * as async from 'async'
 import { BN, rlp } from 'ethereumjs-util'
 import { Block, BlockHeader } from '@ethereumjs/block'
 import Ethash from '@ethereumjs/ethash'
@@ -15,11 +14,25 @@ import {
   numberToHashKey,
   tdKey,
 } from './util'
-import { promisify } from 'util'
 
 const Stoplight = require('flow-stoplight')
 const level = require('level-mem')
 const semaphore = require('semaphore')
+
+// promisify a function: resolves this promise if callback is called
+function promisify(func: Function) {
+  return function() {
+    return new Promise((resolve, reject) => {
+      func(function(err: any, value: any) {
+        if (err) {
+          reject(err)
+        } else {
+          resolve(value)
+        }
+      })
+    })
+  }
+}
 
 export interface BlockchainInterface {
   /**
@@ -515,20 +528,6 @@ export default class Blockchain implements BlockchainInterface {
       return
     }
 
-    function promisify(func: Function) {
-      return function() {
-        return new Promise((resolve, reject) => {
-          func(function(err: any) {
-            if (err) {
-              reject(err)
-            } else {
-              resolve()
-            }
-          })
-        })
-      }
-    }
-
     validateBlock()
       .then(promisify(verifyPOW))
       .then(promisify(getCurrentTd))
@@ -659,13 +658,32 @@ export default class Blockchain implements BlockchainInterface {
         }
 
         // delete higher number assignments and overwrite stale canonical chain
-        async.parallel(
+        Promise.all(
           [
-            (cb) => self._deleteStaleAssignments(number.addn(1), hash, dbOps, cb),
-            (cb) => self._rebuildCanonical(header, dbOps, cb),
-          ],
-          next,
-        )
+            new Promise((resolve, reject) => {
+              self._deleteStaleAssignments(number.iaddn(1), hash, dbOps, function(error:any, value:any) {
+                if (error) {
+                  reject(error)
+                } else {
+                  resolve(value)
+                }
+              })
+            }),
+            new Promise((resolve, reject) => {
+              self._rebuildCanonical(header, dbOps, function(error:any, value:any) {
+                if (error) {
+                  reject(error)
+                } else {
+                  resolve(value)
+                }
+              })
+            })
+          ]
+        ).then(function(value) {
+          next(undefined, value)
+        }).catch(function(error) {
+          next(error)
+        })
       } else {
         if (td.gt(currentTd.block) && !isHeader) {
           self._headBlock = hash
@@ -768,32 +786,29 @@ export default class Blockchain implements BlockchainInterface {
    */
   selectNeededHashes(hashes: Array<any>, cb: any) {
     const self = this
-    let max: number, mid: number, min: number
+    async function _selectNeededHashes() {
+      let max: number, mid: number, min: number
 
-    max = hashes.length - 1
-    mid = min = 0
+      max = hashes.length - 1
+      mid = min = 0
 
-    async.whilst(
-      function test() {
-        return max >= min
-      },
-      function iterate(cb2) {
-        self._hashToNumber(hashes[mid], (err?: any, number?: any) => {
-          if (!err && number) {
-            min = mid + 1
-          } else {
-            max = mid - 1
-          }
-
-          mid = Math.floor((min + max) / 2)
-          cb2()
+      while (max >= min) {
+        await new Promise((resolve, reject) => {
+          self._hashToNumber(hashes[mid], (err?: any, number?: any) => {
+            if (!err && number) {
+              min = mid + 1
+            } else {
+              max = mid - 1
+            }
+  
+            mid = Math.floor((min + max) / 2)
+            resolve()
+          })
         })
-      },
-      function onDone(err) {
-        if (err) return cb(err)
-        cb(null, hashes.slice(min))
-      },
-    )
+      }
+      cb(null, hashes.slice(min))
+    }
+    _selectNeededHashes()
   }
 
   /**
@@ -983,16 +998,25 @@ export default class Blockchain implements BlockchainInterface {
       hash = blockHash.hash()
     }
 
-    async.series(
-      [
-        getHeader,
-        checkCanonical,
-        buildDBops,
-        deleteStaleAssignments,
-        (cb) => self._batchDbOps(dbOps, cb),
-      ],
-      cb,
-    )
+    promisify(getHeader)()
+    .then(promisify(checkCanonical))
+    .then(promisify(buildDBops))
+    .then(promisify(deleteStaleAssignments))
+    .then(function() {
+      return new Promise((resolve, reject) => {
+        self._batchDbOps(dbOps, function(err: any) {
+          if (err) {
+            reject(err)
+          } else {
+            resolve()
+          }
+        })
+      })
+    }).then(function() {
+      cb()
+    }).catch(function(err: any) {
+      cb(err)
+    })
 
     function getHeader(cb2: any) {
       self._getHeader(hash, (err?: any, header?: any) => {
@@ -1112,30 +1136,35 @@ export default class Blockchain implements BlockchainInterface {
       return cb()
     }
 
-    self._hashToNumber(blockHash, (err?: any, number?: any) => {
+    self._hashToNumber(blockHash, async (err?: any, number?: any) => {
       if (err) return cb(err)
       blockNumber = number.addn(1)
-      async.whilst(
-        () => blockNumber,
-        run,
-        (err) => (err ? cb(err) : self._saveHeads(cb)),
-      )
+      let error = false
+      while (blockNumber && !error) {
+        await run().catch(function(err: any) {
+          error = true;
+          cb(err)
+        })
+      }
+
+      if (!error) {
+        self._saveHeads(cb)
+      }
     })
 
-    function run(cb2: any) {
+    async function run() {
       let block: any
 
-      async.series([getBlock, runFunc], function (err?: any) {
-        if (!err) {
-          blockNumber.iaddn(1)
-        } else {
-          blockNumber = false
-          // No more blocks, return
-          if (err.type === 'NotFoundError') {
-            return cb2()
-          }
+      await promisify(getBlock)()
+      .then(promisify(runFunc))
+      .then(function() {
+        blockNumber.iaddn(1)
+      })
+      .catch(function(error) {
+        blockNumber = false
+        if (error.type !== 'NotFoundError') {
+          throw(error)
         }
-        cb2(err)
       })
 
       function getBlock(cb3: any) {
