@@ -658,32 +658,35 @@ export default class Blockchain implements BlockchainInterface {
         }
 
         // delete higher number assignments and overwrite stale canonical chain
-        Promise.all(
-          [
-            new Promise((resolve, reject) => {
-              self._deleteStaleAssignments(number.iaddn(1), hash, dbOps, function(error:any, value:any) {
-                if (error) {
-                  reject(error)
-                } else {
-                  resolve(value)
-                }
-              })
-            }),
-            new Promise((resolve, reject) => {
-              self._rebuildCanonical(header, dbOps, function(error:any, value:any) {
-                if (error) {
-                  reject(error)
-                } else {
-                  resolve(value)
-                }
-              })
+        Promise.all([
+          new Promise((resolve, reject) => {
+            self._deleteStaleAssignments(number.iaddn(1), hash, dbOps, function(
+              error: any,
+              value: any,
+            ) {
+              if (error) {
+                reject(error)
+              } else {
+                resolve(value)
+              }
             })
-          ]
-        ).then(function(value) {
-          next(undefined, value)
-        }).catch(function(error) {
-          next(error)
-        })
+          }),
+          new Promise((resolve, reject) => {
+            self._rebuildCanonical(header, dbOps, function(error: any, value: any) {
+              if (error) {
+                reject(error)
+              } else {
+                resolve(value)
+              }
+            })
+          }),
+        ])
+          .then(function(value) {
+            next(undefined, value)
+          })
+          .catch(function(error) {
+            next(error)
+          })
       } else {
         if (td.gt(currentTd.block) && !isHeader) {
           self._headBlock = hash
@@ -800,7 +803,7 @@ export default class Blockchain implements BlockchainInterface {
             } else {
               max = mid - 1
             }
-  
+
             mid = Math.floor((min + max) / 2)
             resolve()
           })
@@ -999,24 +1002,26 @@ export default class Blockchain implements BlockchainInterface {
     }
 
     promisify(getHeader)()
-    .then(promisify(checkCanonical))
-    .then(promisify(buildDBops))
-    .then(promisify(deleteStaleAssignments))
-    .then(function() {
-      return new Promise((resolve, reject) => {
-        self._batchDbOps(dbOps, function(err: any) {
-          if (err) {
-            reject(err)
-          } else {
-            resolve()
-          }
+      .then(promisify(checkCanonical))
+      .then(promisify(buildDBops))
+      .then(promisify(deleteStaleAssignments))
+      .then(function() {
+        return new Promise((resolve, reject) => {
+          self._batchDbOps(dbOps, function(err: any) {
+            if (err) {
+              reject(err)
+            } else {
+              resolve()
+            }
+          })
         })
       })
-    }).then(function() {
-      cb()
-    }).catch(function(err: any) {
-      cb(err)
-    })
+      .then(function() {
+        cb()
+      })
+      .catch(function(err: any) {
+        cb(err)
+      })
 
     function getHeader(cb2: any) {
       self._getHeader(hash, (err?: any, header?: any) => {
@@ -1142,7 +1147,7 @@ export default class Blockchain implements BlockchainInterface {
       let error = false
       while (blockNumber && !error) {
         await run().catch(function(err: any) {
-          error = true;
+          error = true
           cb(err)
         })
       }
@@ -1156,16 +1161,16 @@ export default class Blockchain implements BlockchainInterface {
       let block: any
 
       await promisify(getBlock)()
-      .then(promisify(runFunc))
-      .then(function() {
-        blockNumber.iaddn(1)
-      })
-      .catch(function(error) {
-        blockNumber = false
-        if (error.type !== 'NotFoundError') {
-          throw(error)
-        }
-      })
+        .then(promisify(runFunc))
+        .then(function() {
+          blockNumber.iaddn(1)
+        })
+        .catch(function(error) {
+          blockNumber = false
+          if (error.type !== 'NotFoundError') {
+            throw error
+          }
+        })
 
       function getBlock(cb3: any) {
         self.getBlock(blockNumber, function (err?: any, b?: any) {
