@@ -3,7 +3,11 @@ import { PrecompileInput } from './types'
 import { VmErrorResult, ExecResult, OOGResult } from '../evm'
 import { ERROR, VmError } from '../../exceptions'
 const assert = require('assert')
-const { BLS12_381_ToG1Point, BLS12_381_ToFrPoint, BLS12_381_FromG1Point } = require('./util/bls12_381')
+const {
+  BLS12_381_ToG1Point,
+  BLS12_381_ToFrPoint,
+  BLS12_381_FromG1Point,
+} = require('./util/bls12_381')
 
 export default async function (opts: PrecompileInput): Promise<ExecResult> {
   assert(opts.data)
@@ -38,7 +42,7 @@ export default async function (opts: PrecompileInput): Promise<ExecResult> {
   const zeroBytes16 = Buffer.alloc(16, 0)
   const zeroByteCheck = [
     [0, 16],
-    [64, 80]
+    [64, 80],
   ]
 
   let G1Array = []

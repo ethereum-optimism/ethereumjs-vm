@@ -3,7 +3,11 @@ import { PrecompileInput } from './types'
 import { VmErrorResult, ExecResult, OOGResult } from '../evm'
 import { ERROR, VmError } from '../../exceptions'
 const assert = require('assert')
-const { BLS12_381_ToG2Point, BLS12_381_ToFrPoint, BLS12_381_FromG2Point } = require('./util/bls12_381')
+const {
+  BLS12_381_ToG2Point,
+  BLS12_381_ToFrPoint,
+  BLS12_381_FromG2Point,
+} = require('./util/bls12_381')
 
 export default async function (opts: PrecompileInput): Promise<ExecResult> {
   assert(opts.data)
