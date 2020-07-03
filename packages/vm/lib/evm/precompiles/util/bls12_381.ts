@@ -11,10 +11,10 @@ function BLS12_381_ToG1Point(input: Buffer, mcl: any): any {
   const Fp_X = new mcl.Fp()
   const Fp_Y = new mcl.Fp()
   const One = new mcl.Fp()
-  
+
   Fp_X.setStr(p_x, 16)
   Fp_Y.setStr(p_y, 16)
-  One.setStr("1", 16)
+  One.setStr('1', 16)
 
   const G1 = new mcl.G1()
 
@@ -24,7 +24,7 @@ function BLS12_381_ToG1Point(input: Buffer, mcl: any): any {
 
   // Check if these coordinates are actually on the curve.
   if (!G1.isValid()) {
-    throw(new VmError(ERROR.BLS_12_381_POINT_NOT_ON_CURVE))
+    throw new VmError(ERROR.BLS_12_381_POINT_NOT_ON_CURVE)
   }
 
   return G1
