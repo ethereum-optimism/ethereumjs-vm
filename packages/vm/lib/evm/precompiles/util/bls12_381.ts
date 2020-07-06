@@ -98,6 +98,17 @@ function BLS12_381_ToFrPoint(input: Buffer, mcl: any): any {
   return Fr
 }
 
+// input: a 64-byte buffer
+// output: a mcl Fp point
+
+function BLS12_381_ToFpPoint(fpCoordinate: Buffer, mcl: any): any {
+  const fp = new mcl.Fp()
+
+  fp.setBigEndianMod(mcl.fromHexStr(fpCoordinate.toString('hex')))
+
+  return fp
+}
+
 // input: two 64-byte buffers
 // output: a mcl Fp2 point
 
@@ -121,5 +132,6 @@ export {
   BLS12_381_ToG2Point,
   BLS12_381_FromG2Point,
   BLS12_381_ToFrPoint,
+  BLS12_381_ToFpPoint,
   BLS12_381_ToFp2Point,
 }

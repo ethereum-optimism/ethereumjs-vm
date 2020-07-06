@@ -13,6 +13,7 @@ const BLS_G2ADD_Address = "000000000000000000000000000000000000000d"
 const BLS_G2MUL_Address = "000000000000000000000000000000000000000e"
 const BLS_G2MULTIEXP_ADDRESS = "000000000000000000000000000000000000000f"
 const BLS_Pairing_Address = "0000000000000000000000000000000000000010"
+const BLS_MapToG1_Address = "0000000000000000000000000000000000000011"
 const BLS_MapToG2_Address = "0000000000000000000000000000000000000012"
 
 // TODO: add out of gas checks
@@ -338,6 +339,44 @@ tape('Berlin BLS tests', (t) => {
         }
 
         st.pass("BLS Pairing output is correct")
+
+        st.end()
+    })
+
+    t.test('MapToG1 precompile', async (st) => {
+        const fileStr = fs.readFileSync("fp_to_g1.csv", 'utf8')   // read test file csv (https://raw.githubusercontent.com/matter-labs/eip1962/master/src/test/test_vectors/eip2537/fp_to_g1.csv)
+        const remFirstLine = fileStr.slice(13)                  // remove the first line 
+        const results = remFirstLine.match(/[0-9A-Fa-f]+/g)     // very simple splitter
+
+        const common = new Common('mainnet', 'berlin')
+
+        const vm = new VM({ common: common })
+
+        if (results.length != 200) {
+            st.fail('amount of tests not the expected test amount')
+        }
+
+        for (let i = 0; i < results.length; i+=2) {
+            const input = results[i]
+            const output = results[i + 1]
+            const result = await vm.runCall({
+                caller: Buffer.from('0000000000000000000000000000000000000000', 'hex'),
+                gasLimit: new BN(0xffffffff),
+                to: Buffer.from(BLS_MapToG1_Address, 'hex'),
+                value: new BN(0),
+                data: Buffer.from(input, 'hex')
+            })
+          
+            if (result.execResult.returnValue.toString('hex') != output) {
+                st.fail("BLS MapToG1 return value is not the expected value")
+            }
+
+            if (!result.execResult.gasUsed.eq(new BN(5500))) {
+                st.fail("BLS MapToG1 gas used is incorrect")
+            }
+        }
+
+        st.pass("BLS MapToG2 output is correct")
 
         st.end()
     })
