@@ -66,10 +66,10 @@ export default async function (opts: PrecompileInput): Promise<ExecResult> {
     }
 
     let g2start = pairStart + 128
-    let G2 
+    let G2
     try {
       G2 = BLS12_381_ToG2Point(opts.data.slice(g2start, g2start + 256), mcl)
-    } catch(e) {
+    } catch (e) {
       return VmErrorResult(e, gasUsed)
     }
 

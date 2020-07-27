@@ -47,12 +47,12 @@ export default async function (opts: PrecompileInput): Promise<ExecResult> {
 
   // convert input to mcl G2 points, add them, and convert the output to a Buffer.
   let mclPoint1
-  let mclPoint2 
+  let mclPoint2
 
   try {
     mclPoint1 = BLS12_381_ToG2Point(opts.data.slice(0, 256), mcl)
     mclPoint2 = BLS12_381_ToG2Point(opts.data.slice(256, 512), mcl)
-  } catch(e) {
+  } catch (e) {
     return VmErrorResult(e, gasUsed)
   }
 

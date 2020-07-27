@@ -31,7 +31,12 @@ export default async function (opts: PrecompileInput): Promise<ExecResult> {
 
   // convert input to mcl Fp1 point
 
-  const Fp1Point = BLS12_381_ToFpPoint(opts.data.slice(0, 64), mcl)
+  let Fp1Point
+  try {
+    Fp1Point = BLS12_381_ToFpPoint(opts.data.slice(0, 64), mcl)
+  } catch (e) {
+    return VmErrorResult(e, gasUsed)
+  }
 
   // map it to G1
   const result = Fp1Point.mapToG1()

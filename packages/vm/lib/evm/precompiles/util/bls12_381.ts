@@ -1,5 +1,12 @@
 const { padToEven } = require('ethereumjs-util')
 import { VmError, ERROR } from '../../../exceptions'
+import { BN } from 'ethereumjs-util'
+
+// base field modulus as described in the EIP
+const fieldModulus = new BN(
+  '1a0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab',
+  16,
+)
 
 // convert an input Buffer to a mcl G1 point
 // this does /NOT/ do any input checks. the input Buffer needs to be of length 128
@@ -121,6 +128,11 @@ function BLS12_381_ToFrPoint(input: Buffer, mcl: any): any {
 // output: a mcl Fp point
 
 function BLS12_381_ToFpPoint(fpCoordinate: Buffer, mcl: any): any {
+  // check if point is in field
+  if (new BN(fpCoordinate).gte(fieldModulus)) {
+    throw new VmError(ERROR.BLS_12_381_FP_NOT_IN_FIELD)
+  }
+
   const fp = new mcl.Fp()
 
   fp.setBigEndianMod(mcl.fromHexStr(fpCoordinate.toString('hex')))
@@ -132,6 +144,14 @@ function BLS12_381_ToFpPoint(fpCoordinate: Buffer, mcl: any): any {
 // output: a mcl Fp2 point
 
 function BLS12_381_ToFp2Point(fpXCoordinate: Buffer, fpYCoordinate: Buffer, mcl: any): any {
+  // check if the coordinates are in the field
+  if (new BN(fpXCoordinate).gte(fieldModulus)) {
+    throw new VmError(ERROR.BLS_12_381_FP_NOT_IN_FIELD)
+  }
+  if (new BN(fpYCoordinate).gte(fieldModulus)) {
+    throw new VmError(ERROR.BLS_12_381_FP_NOT_IN_FIELD)
+  }
+
   const fp_x = new mcl.Fp()
   const fp_y = new mcl.Fp()
 
