@@ -115,7 +115,7 @@ tape('Berlin BLS tests', (t) => {
             st.fail('amount of tests not the expected test amount')
         }
 
-        for (let i = 0; i < results.length; i+=2) {
+        for (let i = 0; i < results.length; i++) {
             const input = results[i]
             const output = results[i + 1]
             const result = await vm.runCall({
@@ -267,7 +267,7 @@ tape('Berlin BLS tests', (t) => {
             st.fail('amount of tests not the expected test amount')
         }
 
-        for (let i = 0; i < results.length; i+=2) {
+        for (let i = 0; i < results.length; i++) {
             const input = results[i]
             const output = results[i + 1]
             const result = await vm.runCall({
@@ -297,7 +297,7 @@ tape('Berlin BLS tests', (t) => {
 
         const vm = new VM({ common: common })
 
-        if (results.length != 200) {
+        if (results.length != 202) { // extra test from geth (in /extras dir) also added
             st.fail('amount of tests not the expected test amount')
         }
 
@@ -313,7 +313,7 @@ tape('Berlin BLS tests', (t) => {
             })
 
             // todo: add a gas check
-
+        
             if (result.execResult.returnValue.toString('hex') != output) {
                 st.fail("BLS G2MULTIEXP return value is not the expected value")
             }
@@ -362,8 +362,9 @@ tape('Berlin BLS tests', (t) => {
                 data: Buffer.from(input, 'hex')
             })
 
+            //Note: MCL currently does not explicitly allow us to check if they are on valid subgroups, (we call isValid and isValidOrder but they seem to return the same value)
             if (result.execResult.exceptionError.error != "point not on curve") {
-                console.log(i)
+                st.fail("BLS pairing did not throw an error on incorrect subgroup")
             }
         }
 
@@ -430,7 +431,7 @@ tape('Berlin BLS tests', (t) => {
 
         const vm = new VM({ common: common })
 
-        if (results.length != 200) {
+        if (results.length != 206) { // three extra tests from geth also added (in /extras dir)
             st.fail('amount of tests not the expected test amount')
         }
 
@@ -508,7 +509,7 @@ tape('Berlin BLS tests', (t) => {
 
         const vm = new VM({ common: common })
 
-        if (results.length != 200) {
+        if (results.length != 206) { // we added the three tests from the /extras dir also.
             st.fail('amount of tests not the expected test amount')
         }
 
