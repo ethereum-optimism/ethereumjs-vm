@@ -16,7 +16,7 @@ function BLS12_381_ToG1Point(input: Buffer, mcl: any): any {
   const p_x = input.slice(16, 64).toString('hex')
   const p_y = input.slice(80, 128).toString('hex')
 
-  const ZeroString48Bytes = ("0").repeat(96)
+  const ZeroString48Bytes = '0'.repeat(96)
   if (p_x == p_y && p_x == ZeroString48Bytes) {
     return new mcl.G1()
   }
@@ -54,7 +54,7 @@ function BLS12_381_FromG1Point(input: any): Buffer {
   const decodeStr = input.getStr(16) //return a string of pattern "1 <x_coord> <y_coord>"
   const decoded = decodeStr.match(/"?[0-9a-f]+"?/g) // match above pattern.
 
-  if (decodeStr == "0") {
+  if (decodeStr == '0') {
     return Buffer.alloc(128, 0)
   }
 
@@ -80,7 +80,12 @@ function BLS12_381_ToG2Point(input: Buffer, mcl: any): any {
 
   const ZeroBytes64 = Buffer.alloc(64, 0)
   // check if we have to do with a zero point
-  if (p_x_1.equals(p_x_2) && p_x_1.equals(p_y_1) && p_x_1.equals(p_y_2) && p_x_1.equals(ZeroBytes64)) {
+  if (
+    p_x_1.equals(p_x_2) &&
+    p_x_1.equals(p_y_1) &&
+    p_x_1.equals(p_y_2) &&
+    p_x_1.equals(ZeroBytes64)
+  ) {
     return new mcl.G2()
   }
 
@@ -120,7 +125,7 @@ function BLS12_381_ToG2Point(input: Buffer, mcl: any): any {
 function BLS12_381_FromG2Point(input: any): Buffer {
   // TODO: figure out if there is a better way to decode these values.
   const decodeStr = input.getStr(16) //return a string of pattern "1 <x_coord_1> <x_coord_2> <y_coord_1> <y_coord_2>"
-  if (decodeStr == "0") {
+  if (decodeStr == '0') {
     return Buffer.alloc(256, 0)
   }
   const decoded = decodeStr.match(/"?[0-9a-f]+"?/g) // match above pattern.
