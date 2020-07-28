@@ -16,11 +16,11 @@ const BLS_Pairing_Address = "0000000000000000000000000000000000000010"
 const BLS_MapToG1_Address = "0000000000000000000000000000000000000011"
 const BLS_MapToG2_Address = "0000000000000000000000000000000000000012"
 
-// TODO: add out of gas checks
+const dir = "./tests/api/berlin/"
 
 tape('Berlin BLS tests', (t) => {
     t.test('G1ADD precompile', async (st) => {
-        const fileStr = fs.readFileSync("g1_add.csv", 'utf8')   // read test file csv (https://raw.githubusercontent.com/matter-labs/eip1962/master/src/test/test_vectors/eip2537/g1_add.csv)
+        const fileStr = fs.readFileSync(dir + "g1_add.csv", 'utf8')   // read test file csv (https://raw.githubusercontent.com/matter-labs/eip1962/master/src/test/test_vectors/eip2537/g1_add.csv)
         const remFirstLine = fileStr.slice(13)                  // remove the first line 
         const results = remFirstLine.match(/[0-9A-Fa-f]+/g)     // very simple splitter
 
@@ -60,7 +60,7 @@ tape('Berlin BLS tests', (t) => {
     // TODO: add G1/G2 tests checking for failures (i.e. input length incorrect; input values not on curve)
 
     t.test('G1MUL precompile', async (st) => {
-        const fileStr = fs.readFileSync("g1_mul.csv", 'utf8')   // read test file csv (https://raw.githubusercontent.com/matter-labs/eip1962/master/src/test/test_vectors/eip2537/g1_mul.csv)
+        const fileStr = fs.readFileSync(dir + "g1_mul.csv", 'utf8')   // read test file csv (https://raw.githubusercontent.com/matter-labs/eip1962/master/src/test/test_vectors/eip2537/g1_mul.csv)
         const remFirstLine = fileStr.slice(13)                  // remove the first line 
         const results = remFirstLine.match(/[0-9A-Fa-f]+/g)     // very simple splitter
 
@@ -98,7 +98,7 @@ tape('Berlin BLS tests', (t) => {
     })
 
     t.test('G1MUL: tests if G1 input points are not on the curve', async (st) => {
-        const fileStr = fs.readFileSync("g1_not_on_curve.csv", 'utf8')   // read test file csv (https://raw.githubusercontent.com/matter-labs/eip1962/master/src/test/test_vectors/eip2537/g1_mul.csv)
+        const fileStr = fs.readFileSync(dir + "g1_not_on_curve.csv", 'utf8')   // read test file csv (https://raw.githubusercontent.com/matter-labs/eip1962/master/src/test/test_vectors/eip2537/g1_mul.csv)
         const remFirstLine = fileStr.slice(13)                  // remove the first line 
         const lineResults = remFirstLine.split(/\r?\n/)    // very simple splitter
         let results = []
@@ -138,7 +138,7 @@ tape('Berlin BLS tests', (t) => {
     })
 
     t.test('G1MULTIEXP precompile', async (st) => {
-        const fileStr = fs.readFileSync("g1_multiexp.csv", 'utf8')   // read test file csv (https://raw.githubusercontent.com/matter-labs/eip1962/master/src/test/test_vectors/eip2537/g1_multiexp.csv)
+        const fileStr = fs.readFileSync(dir + "g1_multiexp.csv", 'utf8')   // read test file csv (https://raw.githubusercontent.com/matter-labs/eip1962/master/src/test/test_vectors/eip2537/g1_multiexp.csv)
         const remFirstLine = fileStr.slice(13)                  // remove the first line 
         const results = remFirstLine.match(/[0-9A-Fa-f]+/g)     // very simple splitter
 
@@ -174,7 +174,7 @@ tape('Berlin BLS tests', (t) => {
     })
 
     t.test('G2ADD precompile', async (st) => {
-        const fileStr = fs.readFileSync("g2_add.csv", 'utf8')   // read test file csv (https://raw.githubusercontent.com/matter-labs/eip1962/master/src/test/test_vectors/eip2537/g2_add.csv)
+        const fileStr = fs.readFileSync(dir + "g2_add.csv", 'utf8')   // read test file csv (https://raw.githubusercontent.com/matter-labs/eip1962/master/src/test/test_vectors/eip2537/g2_add.csv)
         const remFirstLine = fileStr.slice(13)                  // remove the first line 
         const results = remFirstLine.match(/[0-9A-Fa-f]+/g)     // very simple splitter
 
@@ -212,7 +212,7 @@ tape('Berlin BLS tests', (t) => {
     })
 
     t.test('G2MUL precompile', async (st) => {
-        const fileStr = fs.readFileSync("g2_mul.csv", 'utf8')   // read test file csv (https://raw.githubusercontent.com/matter-labs/eip1962/master/src/test/test_vectors/eip2537/g2_mul.csv)
+        const fileStr = fs.readFileSync(dir + "g2_mul.csv", 'utf8')   // read test file csv (https://raw.githubusercontent.com/matter-labs/eip1962/master/src/test/test_vectors/eip2537/g2_mul.csv)
         const remFirstLine = fileStr.slice(13)                  // remove the first line 
         const results = remFirstLine.match(/[0-9A-Fa-f]+/g)     // very simple splitter
 
@@ -250,7 +250,7 @@ tape('Berlin BLS tests', (t) => {
     })
 
     t.test('G2MUL: tests if G2 input points are not on the curve', async (st) => {
-        const fileStr = fs.readFileSync("g2_not_on_curve.csv", 'utf8')   // read test file csv (https://raw.githubusercontent.com/matter-labs/eip1962/master/src/test/test_vectors/eip2537/g2_not_on_curve.csv)
+        const fileStr = fs.readFileSync(dir + "g2_not_on_curve.csv", 'utf8')   // read test file csv (https://raw.githubusercontent.com/matter-labs/eip1962/master/src/test/test_vectors/eip2537/g2_not_on_curve.csv)
         const remFirstLine = fileStr.slice(13)                  // remove the first line 
         const lineResults = remFirstLine.split(/\r?\n/)    // very simple splitter
         let results = []
@@ -289,7 +289,7 @@ tape('Berlin BLS tests', (t) => {
     })
 
     t.test('G2MULTIEXP precompile', async (st) => {
-        const fileStr = fs.readFileSync("g2_multiexp.csv", 'utf8')   // read test file csv (https://raw.githubusercontent.com/matter-labs/eip1962/master/src/test/test_vectors/eip2537/g2_multiexp.csv)
+        const fileStr = fs.readFileSync(dir + "g2_multiexp.csv", 'utf8')   // read test file csv (https://raw.githubusercontent.com/matter-labs/eip1962/master/src/test/test_vectors/eip2537/g2_multiexp.csv)
         const remFirstLine = fileStr.slice(13)                  // remove the first line 
         const results = remFirstLine.match(/[0-9A-Fa-f]+/g)     // very simple splitter
 
@@ -334,7 +334,7 @@ tape('Berlin BLS tests', (t) => {
     */
 
     t.test("Pairing test: points not in correct subgroup", async (st) => {
-        const fileStr = fs.readFileSync("invalid_subgroup_for_pairing.csv", 'utf8')   // read test file csv (https://raw.githubusercontent.com/matter-labs/eip1962/master/src/test/test_vectors/eip2537/negative/invalid_subgroup_for_pairing.csv)
+        const fileStr = fs.readFileSync(dir + "invalid_subgroup_for_pairing.csv", 'utf8')   // read test file csv (https://raw.githubusercontent.com/matter-labs/eip1962/master/src/test/test_vectors/eip2537/negative/invalid_subgroup_for_pairing.csv)
         const remFirstLine = fileStr.slice(13)                  // remove the first line 
         const lineResults = remFirstLine.split(/\r?\n/)    // very simple splitter
         let results = []
@@ -374,7 +374,7 @@ tape('Berlin BLS tests', (t) => {
     })
 
     t.test('Pairing precompile', async (st) => {
-        const fileStr = fs.readFileSync("pairing.csv", 'utf8')   // read test file csv (https://raw.githubusercontent.com/matter-labs/eip1962/master/src/test/test_vectors/eip2537/pairing.csv)
+        const fileStr = fs.readFileSync(dir + "pairing.csv", 'utf8')   // read test file csv (https://raw.githubusercontent.com/matter-labs/eip1962/master/src/test/test_vectors/eip2537/pairing.csv)
         const remFirstLine = fileStr.slice(13)                  // remove the first line 
         const results = remFirstLine.match(/[0-9A-Fa-f]+/g)     // very simple splitter
 
@@ -423,7 +423,7 @@ tape('Berlin BLS tests', (t) => {
     })
 
     t.test('MapToG1 precompile', async (st) => {
-        const fileStr = fs.readFileSync("fp_to_g1.csv", 'utf8')   // read test file csv (https://raw.githubusercontent.com/matter-labs/eip1962/master/src/test/test_vectors/eip2537/fp_to_g1.csv)
+        const fileStr = fs.readFileSync(dir + "fp_to_g1.csv", 'utf8')   // read test file csv (https://raw.githubusercontent.com/matter-labs/eip1962/master/src/test/test_vectors/eip2537/fp_to_g1.csv)
         const remFirstLine = fileStr.slice(13)                  // remove the first line 
         const results = remFirstLine.match(/[0-9A-Fa-f]+/g)     // very simple splitter
 
@@ -461,7 +461,7 @@ tape('Berlin BLS tests', (t) => {
     })
 
     t.test('MapToG1: tests if Fp input points are not on curve', async (st) => {
-        const fileStr = fs.readFileSync("invalid_fp_encoding.csv", 'utf8')   // read test file csv (https://raw.githubusercontent.com/matter-labs/eip1962/master/src/test/test_vectors/eip2537/negative/invalid_fp_encoding.csv)
+        const fileStr = fs.readFileSync(dir + "invalid_fp_encoding.csv", 'utf8')   // read test file csv (https://raw.githubusercontent.com/matter-labs/eip1962/master/src/test/test_vectors/eip2537/negative/invalid_fp_encoding.csv)
         const remFirstLine = fileStr.slice(13)                  // remove the first line 
         const lineResults = remFirstLine.split(/\r?\n/)    // very simple splitter
         let results = []
@@ -501,7 +501,7 @@ tape('Berlin BLS tests', (t) => {
     })
 
     t.test('MapToG2 precompile', async (st) => {
-        const fileStr = fs.readFileSync("fp2_to_g2.csv", 'utf8')   // read test file csv (https://raw.githubusercontent.com/matter-labs/eip1962/master/src/test/test_vectors/eip2537/fp2_to_g2.csv)
+        const fileStr = fs.readFileSync(dir + "fp2_to_g2.csv", 'utf8')   // read test file csv (https://raw.githubusercontent.com/matter-labs/eip1962/master/src/test/test_vectors/eip2537/fp2_to_g2.csv)
         const remFirstLine = fileStr.slice(13)                  // remove the first line 
         const results = remFirstLine.match(/[0-9A-Fa-f]+/g)     // very simple splitter
 
@@ -539,7 +539,7 @@ tape('Berlin BLS tests', (t) => {
     })
 
     t.test('MapToG2: tests if Fp2 input points are not on curve', async (st) => {
-        const fileStr = fs.readFileSync("invalid_fp2_encoding.csv", 'utf8')   // read test file csv (https://raw.githubusercontent.com/matter-labs/eip1962/master/src/test/test_vectors/eip2537/negative/invalid_fp_encoding.csv)
+        const fileStr = fs.readFileSync(dir + "invalid_fp2_encoding.csv", 'utf8')   // read test file csv (https://raw.githubusercontent.com/matter-labs/eip1962/master/src/test/test_vectors/eip2537/negative/invalid_fp_encoding.csv)
         const remFirstLine = fileStr.slice(13)                  // remove the first line 
         const lineResults = remFirstLine.split(/\r?\n/)    // very simple splitter
         let results = []
