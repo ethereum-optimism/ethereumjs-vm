@@ -368,7 +368,7 @@ tape('Berlin BLS tests', (t) => {
             }
         }
 
-        st.pass("BLS precompiles reject G2 points not on curve")
+        st.pass("BLS pairing rejects G1/G2 points not in correct subgroup")
 
         st.end()
     })
