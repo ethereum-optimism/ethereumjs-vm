@@ -44,7 +44,7 @@ export default async function (opts: PrecompileInput): Promise<ExecResult> {
   }
 
   if (inputData.length % 160 != 0) {
-    return VmErrorResult(new VmError(ERROR.BLS_12_381_INVALID_INPUT_LENGTH), gasUsed)
+    return VmErrorResult(new VmError(ERROR.BLS_12_381_INVALID_INPUT_LENGTH), opts.gasLimit)
   }
 
   // prepare pairing list and check for mandatory zero bytes
@@ -67,14 +67,14 @@ export default async function (opts: PrecompileInput): Promise<ExecResult> {
         zeroByteCheck[index][1] + pairStart,
       )
       if (!slicedBuffer.equals(zeroBytes16)) {
-        return VmErrorResult(new VmError(ERROR.BLS_12_381_POINT_NOT_ON_CURVE), gasUsed)
+        return VmErrorResult(new VmError(ERROR.BLS_12_381_POINT_NOT_ON_CURVE), opts.gasLimit)
       }
     }
     let G1
     try {
       G1 = BLS12_381_ToG1Point(opts.data.slice(pairStart, pairStart + 128), mcl)
     } catch (e) {
-      return VmErrorResult(e, gasUsed)
+      return VmErrorResult(e, opts.gasLimit)
     }
     let Fr = BLS12_381_ToFrPoint(opts.data.slice(pairStart + 128, pairStart + 160), mcl)
 

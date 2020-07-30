@@ -26,7 +26,7 @@ export default async function (opts: PrecompileInput): Promise<ExecResult> {
   let gasDiscountArray = opts._common.param('gasPrices', 'Bls12381MultiExpGasDiscount')
   let gasDiscountMax = gasDiscountArray[gasDiscountArray.length - 1][1]
   let gasDiscountMultiplier
-  
+
   if (numPairs <= gasDiscountArray.length) {
     if (numPairs == 0) {
       gasDiscountMultiplier = 0 // this implicitly sets gasUsed to 0 as per the EIP.
@@ -44,7 +44,7 @@ export default async function (opts: PrecompileInput): Promise<ExecResult> {
   }
 
   if (inputData.length % 288 != 0) {
-    return VmErrorResult(new VmError(ERROR.BLS_12_381_INVALID_INPUT_LENGTH), gasUsed)
+    return VmErrorResult(new VmError(ERROR.BLS_12_381_INVALID_INPUT_LENGTH), opts.gasLimit)
   }
 
   // prepare pairing list and check for mandatory zero bytes
@@ -69,14 +69,14 @@ export default async function (opts: PrecompileInput): Promise<ExecResult> {
         zeroByteCheck[index][1] + pairStart,
       )
       if (!slicedBuffer.equals(zeroBytes16)) {
-        return VmErrorResult(new VmError(ERROR.BLS_12_381_POINT_NOT_ON_CURVE), gasUsed)
+        return VmErrorResult(new VmError(ERROR.BLS_12_381_POINT_NOT_ON_CURVE), opts.gasLimit)
       }
     }
     let G2
     try {
       G2 = BLS12_381_ToG2Point(opts.data.slice(pairStart, pairStart + 256), mcl)
     } catch (e) {
-      return VmErrorResult(e, gasUsed)
+      return VmErrorResult(e, opts.gasLimit)
     }
     let Fr = BLS12_381_ToFrPoint(opts.data.slice(pairStart + 256, pairStart + 288), mcl)
 
