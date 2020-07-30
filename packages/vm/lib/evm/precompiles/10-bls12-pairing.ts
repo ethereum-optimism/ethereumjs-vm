@@ -27,7 +27,7 @@ export default async function (opts: PrecompileInput): Promise<ExecResult> {
   if (inputData.length % 384 != 0) {
     return VmErrorResult(new VmError(ERROR.BLS_12_381_INVALID_INPUT_LENGTH), opts.gasLimit)
   }
-  
+
   if (opts.gasLimit.lt(gasUsed)) {
     return OOGResult(opts.gasLimit)
   }

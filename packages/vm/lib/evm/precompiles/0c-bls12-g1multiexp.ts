@@ -37,7 +37,7 @@ export default async function (opts: PrecompileInput): Promise<ExecResult> {
     gasDiscountMultiplier = gasDiscountMax
   }
 
-  let gasUsed = (gasUsedPerPair.imuln(numPairs).imuln(gasDiscountMultiplier)).idivn(1000)
+  let gasUsed = gasUsedPerPair.imuln(numPairs).imuln(gasDiscountMultiplier).idivn(1000)
 
   if (opts.gasLimit.lt(gasUsed)) {
     return OOGResult(opts.gasLimit)

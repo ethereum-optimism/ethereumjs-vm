@@ -120,7 +120,7 @@ export default class VM extends AsyncEventEmitter {
         'petersburg',
         'istanbul',
         'muirGlacier',
-        'berlin'
+        'berlin',
       ]
 
       this._common = new Common(chain, hardfork, supportedHardforks)
