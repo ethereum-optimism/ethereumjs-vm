@@ -21,13 +21,13 @@ export default async function (opts: PrecompileInput): Promise<ExecResult> {
     return VmErrorResult(new VmError(ERROR.BLS_12_381_INPUT_EMPTY), baseGas)
   }
 
-  if (inputData.length % 384 != 0) {
-    return VmErrorResult(new VmError(ERROR.BLS_12_381_INVALID_INPUT_LENGTH), baseGas)
-  }
-
   let gasUsedPerPair = new BN(opts._common.param('gasPrices', 'Bls12381PairingPerPairGas'))
-  let gasUsed = baseGas.iadd(gasUsedPerPair.imul(new BN(inputData.length / 384)))
+  let gasUsed = baseGas.iadd(gasUsedPerPair.imul(new BN(Math.floor(inputData.length / 384))))
 
+  if (inputData.length % 384 != 0) {
+    return VmErrorResult(new VmError(ERROR.BLS_12_381_INVALID_INPUT_LENGTH), gasUsed)
+  }
+  
   if (opts.gasLimit.lt(gasUsed)) {
     return OOGResult(opts.gasLimit)
   }

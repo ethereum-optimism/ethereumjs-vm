@@ -20,14 +20,24 @@ export default async function (opts: PrecompileInput): Promise<ExecResult> {
     return VmErrorResult(new VmError(ERROR.BLS_12_381_INPUT_EMPTY), new BN(0)) // follow Geths implementation
   }
 
-  const numPairs = inputData.length / 160
+  const numPairs = Math.floor(inputData.length / 160)
 
   let gasUsedPerPair = new BN(opts._common.param('gasPrices', 'Bls12381G1MulGas'))
   let gasDiscountArray = opts._common.param('gasPrices', 'Bls12381MultiExpGasDiscount')
   let gasDiscountMax = gasDiscountArray[gasDiscountArray.length - 1][1]
-  let gasDiscountMultiplier = new BN(gasDiscountArray[numPairs - 1] || gasDiscountMax)
+  let gasDiscountMultiplier
 
-  let gasUsed = gasUsedPerPair.imul(new BN(numPairs)).imul(gasDiscountMultiplier).idivn(1000)
+  if (numPairs <= gasDiscountArray.length) {
+    if (numPairs == 0) {
+      gasDiscountMultiplier = 0 // this implicitly sets gasUsed to 0 as per the EIP.
+    } else {
+      gasDiscountMultiplier = gasDiscountArray[numPairs - 1][1]
+    }
+  } else {
+    gasDiscountMultiplier = gasDiscountMax
+  }
+
+  let gasUsed = (gasUsedPerPair.imuln(numPairs).imuln(gasDiscountMultiplier)).idivn(1000)
 
   if (opts.gasLimit.lt(gasUsed)) {
     return OOGResult(opts.gasLimit)
