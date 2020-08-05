@@ -21,6 +21,7 @@
     "test:buildIntegrity": "npm run test:state -- --test='stackOverflow'",
     "test:blockchain": "node -r ts-node/register --stack-size=1500 ./tests/tester --blockchain",
     "test:API": "npm run build && ts-node ./node_modules/tape/bin/tape './tests/api/**/*.js'",
+    "test:OVM": "npm run build && ts-node ./node_modules/tape/bin/tape './tests/api/state/ovmStateManager.js'",
     "test:API:browser": "npm run build && karma start karma.conf.js",
     "test": "echo \"[INFO] Generic test cmd not used. See package.json for more specific test run cmds.\"",
     "tslint": "ethereumjs-config-tslint",
