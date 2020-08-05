@@ -16,12 +16,10 @@ import { StateManagerOpts } from './stateManager'
  * from the Execution Manager.
  */
 export default class OVMStateManager extends StateManager {
-
   /**
    * Instantiate the StateManager interface.
    */
   constructor(opts: StateManagerOpts = {}) {
     super(opts)
   }
-
 }
