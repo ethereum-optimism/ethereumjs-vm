@@ -683,7 +683,7 @@ export const handlers: { [k: string]: OpHandler } = {
       outLength,
     ] = runState.stack.popN(7)
     const toAddressBuf = addressToBuffer(toAddress)
-
+    // TODO OPTIMISM skip all of the below if toAddress is OVMStateManager. Instead, directly interact with the RunState.statemanager.
     if (runState.eei.isStatic() && !value.isZero()) {
       trap(ERROR.STATIC_STATE_CHANGE)
     }

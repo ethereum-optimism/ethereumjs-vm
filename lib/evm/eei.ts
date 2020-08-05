@@ -534,6 +534,7 @@ export default class EEI {
     }
 
     this._env.contract.nonce = toBuffer(new BN(this._env.contract.nonce).addn(1))
+    // TODO OPTIMISM put the contract at the Active Contract Address, not this address
     await this._state.putAccount(this._env.address, this._env.contract)
 
     const results = await this._evm.executeMessage(msg)

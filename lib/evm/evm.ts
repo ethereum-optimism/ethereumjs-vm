@@ -121,8 +121,10 @@ export default class EVM {
 
     let result
     if (message.to) {
+      // TODO OPTIMISM FORWARD THESE CALLS TO THE EXECUTION MANAGER
       result = await this._executeCall(message)
     } else {
+      // TODO OPTIMISM FORWARD THESE CREATES TO THE EXECUTION MANAGER
       result = await this._executeCreate(message)
     }
     // TODO: Move `gasRefund` to a tx-level result object
@@ -254,6 +256,7 @@ export default class EVM {
 
     // Save code if a new contract was created
     if (!result.exceptionError && result.returnValue && result.returnValue.toString() !== '') {
+      //TODO Put the contract code at the ActiveContract, not the message.to
       await this._state.putContractCode(message.to, result.returnValue)
     }
 
