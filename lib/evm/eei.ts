@@ -4,6 +4,7 @@ import Account from 'ethereumjs-account'
 import Blockchain from 'ethereumjs-blockchain'
 import Common from 'ethereumjs-common'
 import PStateManager from '../state/promisified'
+import OVMStateManagerWrapper from '../state/ovmStateManager'
 import { VmError, ERROR } from '../exceptions'
 import Message from './message'
 import EVM, { EVMResult } from './evm'
@@ -57,10 +58,12 @@ export default class EEI {
   _lastReturned: Buffer
   _common: Common
   _gasLeft: BN
+  _ovmSM: OVMStateManagerWrapper
 
   constructor(env: Env, state: PStateManager, evm: EVM, common: Common, gasLeft: BN) {
     this._env = env
     this._state = state
+    this._ovmSM = new OVMStateManagerWrapper(state)
     this._evm = evm
     this._lastReturned = Buffer.alloc(0)
     this._common = common
@@ -479,7 +482,9 @@ export default class EEI {
       return new BN(0)
     }
 
-    const results = await this._evm.executeMessage(msg)
+    const results = (msg.to.toString('hex') === this._ovmSM.address) ?
+      await this._ovmSM.callSMFunction(msg.data.toString('hex')) :
+      await this._evm.executeMessage(msg)
 
     if (results.execResult.logs) {
       this._result.logs = this._result.logs.concat(results.execResult.logs)
