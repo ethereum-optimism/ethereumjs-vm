@@ -1,15 +1,16 @@
 const promisify = require('util.promisify')
 const tape = require('tape')
-const { parallel } = require('async')
+// const { parallel } = require('async')
 const util = require('ethereumjs-util')
-const Common = require('ethereumjs-common').default
+// var abi = require('ethereumjs-abi')
+// const Common = require('ethereumjs-common').default
 const { OVMStateManager } = require('../../../dist/state')
+const stateManagerAbi = require('./StateManagerABI.json')
 const { createAccount } = require('../utils')
-const { isRunningInKarma } = require('../../util')
+// const { isRunningInKarma } = require('../../util')
 
 tape('OVMStateManager', t => {
   t.test('should instantiate', st => {
-    console.log('hi')
     const stateManager = new OVMStateManager()
 
     st.deepEqual(stateManager._trie.root, util.KECCAK256_RLP, 'it has default root')
@@ -20,6 +21,62 @@ tape('OVMStateManager', t => {
       st.end()
     })
   })
+  t.test('should set and get storage', async st => {
+    const stateManager = new OVMStateManager()
+    const putContractStorage = promisify((...args) => stateManager.putContractStorage(...args))
+    const getContractStorage = promisify((...args) => stateManager.getContractStorage(...args))
+
+    const addressBuffer = Buffer.from('a94f5374fce5edbc8e2a8697c15331677e6ebf0b', 'hex')
+    const key = util.toBuffer('0x1234567890123456789012345678901234567890123456789012345678901234')
+    console.log('key',key)
+    console.log('other key', Buffer.from('0x1234567890123456789012345678901234567890123456789012345678901234', 'hex'))
+    const value = Buffer.from('0x1234')
+    await putContractStorage(addressBuffer, key, value)
+    const contract0 = await getContractStorage(addressBuffer, key)
+    st.equal(
+      contract0.toString('hex'),
+      value.toString('hex'),
+      "contract key's value is set in the _storageTries cache",
+    )
+
+    // const encoded = abi.encode(stateManagerAbi, "getStorage", [ address, key, value ])
+    // await promisify(stateManager.setStorage(address, key, value))
+    // const result = await promisify(stateManager.getStorage(address, key))
+
+    // const params = abi.rawEncode(['string'], [greeting])
+
+    // const tx = new Transaction({
+    //   to: contractAddress,
+    //   value: 0,
+    //   gasLimit: 2000000, // We assume that 2M is enough,
+    //   gasPrice: 1,
+    //   data: '0x' + abi.methodID('setGreeting', ['string']).toString('hex') + params.toString('hex'),
+    //   nonce: await getAccountNonce(vm, senderPrivateKey),
+    // })
+    st.end()
+  })
+
+  // func TestSloadAndStore(t *testing.T) {
+  //   rawStateManagerAbi, _ := ioutil.ReadFile("./StateManagerABI.json")
+  //   stateManagerAbi, _ := abi.JSON(strings.NewReader(string(rawStateManagerAbi)))
+  //   state := newState()
+  
+  //   address := common.HexToAddress("9999999999999999999999999999999999999999")
+  //   key := [32]byte{}
+  //   value := [32]byte{}
+  //   copy(key[:], []byte("hello"))
+  //   copy(value[:], []byte("world"))
+  
+  //   storeCalldata, _ := stateManagerAbi.Pack("setStorage", address, key, value)
+  //   getCalldata, _ := stateManagerAbi.Pack("getStorage", address, key)
+  
+  //   call(t, state, vm.StateManagerAddress, storeCalldata)
+  //   getStorageReturnValue, _ := call(t, state, vm.StateManagerAddress, getCalldata)
+  
+  //   if !bytes.Equal(value[:], getStorageReturnValue) {
+  //     t.Errorf("Expected %020x; got %020x", value[:], getStorageReturnValue)
+  //   }
+  // }
 
 //   t.test('should clear the cache when the state root is set', async st => {
 //     const stateManager = new StateManager()
@@ -88,34 +145,34 @@ tape('OVMStateManager', t => {
 //     st.end()
 //   })
 
-//   t.test(
-//     'should put and get account, and add to the underlying cache if the account is not found',
-//     async st => {
-//       const stateManager = new StateManager()
-//       const account = createAccount()
+  t.test(
+    'should put and get account, and add to the underlying cache if the account is not found',
+    async st => {
+      const stateManager = new OVMStateManager()
+      const account = createAccount()
 
-//       await promisify(stateManager.putAccount.bind(stateManager))(
-//         'a94f5374fce5edbc8e2a8697c15331677e6ebf0b',
-//         account,
-//       )
+      await promisify(stateManager.putAccount.bind(stateManager))(
+        'a94f5374fce5edbc8e2a8697c15331677e6ebf0b',
+        account,
+      )
 
-//       let res = await promisify(stateManager.getAccount.bind(stateManager))(
-//         'a94f5374fce5edbc8e2a8697c15331677e6ebf0b',
-//       )
+      let res = await promisify(stateManager.getAccount.bind(stateManager))(
+        'a94f5374fce5edbc8e2a8697c15331677e6ebf0b',
+      )
 
-//       st.equal(res.balance.toString('hex'), 'fff384')
+      st.equal(res.balance.toString('hex'), 'fff384')
 
-//       stateManager._cache.clear()
+      stateManager._cache.clear()
 
-//       res = await promisify(stateManager.getAccount.bind(stateManager))(
-//         'a94f5374fce5edbc8e2a8697c15331677e6ebf0b',
-//       )
+      res = await promisify(stateManager.getAccount.bind(stateManager))(
+        'a94f5374fce5edbc8e2a8697c15331677e6ebf0b',
+      )
 
-//       st.equal(stateManager._cache._cache.keys[0], 'a94f5374fce5edbc8e2a8697c15331677e6ebf0b')
+      st.equal(stateManager._cache._cache.keys[0], 'a94f5374fce5edbc8e2a8697c15331677e6ebf0b')
 
-//       st.end()
-//     },
-//   )
+      st.end()
+    },
+  )
 
 //   t.test(
 //     'should call the callback with a boolean representing emptiness, when the account is empty',
