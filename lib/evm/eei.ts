@@ -482,9 +482,10 @@ export default class EEI {
       return new BN(0)
     }
 
-    const results = (msg.to.toString('hex') === this._ovmSM.address) ?
-      await this._ovmSM.callSMFunction(msg.data.toString('hex')) :
-      await this._evm.executeMessage(msg)
+    const results =
+      msg.to.toString('hex') === this._ovmSM.address
+        ? await this._ovmSM.callSMFunction(msg.data.toString('hex'))
+        : await this._evm.executeMessage(msg)
 
     if (results.execResult.logs) {
       this._result.logs = this._result.logs.concat(results.execResult.logs)

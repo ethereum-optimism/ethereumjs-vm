@@ -136,6 +136,18 @@ export default class VM extends AsyncEventEmitter {
     this._emit = promisify(this.emit.bind(this))
   }
 
+  initOVM(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this.stateManager.applyOVMState((err: Error, res: any) => {
+        if (err) {
+          reject(err)
+        } else {
+          resolve()
+        }
+      })
+    })
+  }
+
   /**
    * Processes blocks and adds them to the blockchain.
    *

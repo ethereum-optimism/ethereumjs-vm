@@ -9,6 +9,7 @@ import { genesisStateByName } from 'ethereumjs-common/dist/genesisStates'
 import Account from 'ethereumjs-account'
 import Cache from './cache'
 import { ripemdPrecompileAddress } from '../evm/precompiles'
+import * as OVMStateDump from './ovm-state-dump.json'
 
 /**
  * Storage values of an account
@@ -29,6 +30,24 @@ export interface StateManagerOpts {
    * A [`merkle-patricia-tree`](https://github.com/ethereumjs/merkle-patricia-tree) instance
    */
   trie?: any
+}
+
+export interface StateDump {
+  root: string
+  accounts: AccountsDump
+}
+
+export interface AccountsDump {
+  [index: string]: AccountDump
+}
+
+export interface AccountDump {
+  balance: string
+  nonce: number
+  root: string
+  codeHash: string
+  code?: string
+  storage?: StorageDump
 }
 
 /**
@@ -528,6 +547,76 @@ export default class StateManager {
         cb(err)
       }
     })
+  }
+
+  accountDumpToAccount(accountDump: AccountDump): Account {
+    const { nonce, root, codeHash } = accountDump
+    const account = new Account()
+    let hexNonce: string = nonce.toString(16)
+    if (hexNonce.length % 2 !== 0) {
+      hexNonce = '0' + hexNonce
+    }
+    account.nonce = Buffer.from(hexNonce, 'hex')
+    account.stateRoot = Buffer.from(root, 'hex')
+    account.codeHash = Buffer.from(codeHash, 'hex')
+    return account
+  }
+
+  putStorageDump(address: Buffer, storage: StorageDump, cb: any) {
+    const storageKeys: string[] = Object.keys(storage)
+    asyncLib.eachSeries(
+      storageKeys,
+      (key: string, done: any) => {
+        const keyBuffer: Buffer = utils.toBuffer(key)
+        const valueBuffer: Buffer = utils.toBuffer(storage[key])
+        this.putContractStorage(address, keyBuffer, valueBuffer, done)
+      },
+      cb,
+    )
+  }
+
+  putAccountDump(addressBuffer: Buffer, accountDump: AccountDump, cb: any) {
+    const account: Account = this.accountDumpToAccount(accountDump)
+    asyncLib.series(
+      [
+        (done: any) => {
+          // Put account at address
+          this._trie.put(addressBuffer, account.serialize(), done)
+        },
+        (done: any) => {
+          if (accountDump.code) {
+            // set contract code at address
+            const codeBuffer: Buffer = Buffer.from(accountDump.code, 'hex')
+            this.putContractCode(addressBuffer, codeBuffer, cb)
+          } else {
+            done()
+          }
+        },
+        (done: any) => {
+          if (accountDump.storage) {
+            // set storage slots at address
+            this.putStorageDump(addressBuffer, accountDump.storage, cb)
+          } else {
+            done()
+          }
+        },
+      ],
+      cb,
+    )
+  }
+
+  applyOVMState(cb: any): void {
+    const accounts: AccountsDump = OVMStateDump.accounts
+    const addresses: string[] = Object.keys(accounts)
+    asyncLib.eachSeries(
+      addresses,
+      (address: string, done: any) => {
+        const addressBuffer: Buffer = utils.toBuffer(address)
+        const accountDump: AccountDump = accounts[address]
+        this.putAccountDump(addressBuffer, accountDump, done)
+      },
+      cb,
+    )
   }
 
   /**

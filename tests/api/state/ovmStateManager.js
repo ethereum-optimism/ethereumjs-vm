@@ -2,59 +2,101 @@ const promisify = require('util.promisify')
 const tape = require('tape')
 // const { parallel } = require('async')
 const util = require('ethereumjs-util')
-// var abi = require('ethereumjs-abi')
+var abi = require('ethereumjs-abi')
 // const Common = require('ethereumjs-common').default
 const { OVMStateManager } = require('../../../dist/state')
 const stateManagerAbi = require('./StateManagerABI.json')
 const { createAccount } = require('../utils')
+const VM = require('../../../dist/index').default
 // const { isRunningInKarma } = require('../../util')
 
-tape('OVMStateManager', t => {
-  t.test('should instantiate', st => {
-    const stateManager = new OVMStateManager()
-
-    st.deepEqual(stateManager._trie.root, util.KECCAK256_RLP, 'it has default root')
-    st.equal(stateManager._common.hardfork(), 'petersburg', 'it has default hardfork')
-    stateManager.getStateRoot((err, res) => {
-      st.error(err, 'getStateRoot returns no error')
-      st.deepEqual(res, util.KECCAK256_RLP, 'it has default root')
-      st.end()
-    })
-  })
-  t.test('should set and get storage', async st => {
-    const stateManager = new OVMStateManager()
-    const putContractStorage = promisify((...args) => stateManager.putContractStorage(...args))
-    const getContractStorage = promisify((...args) => stateManager.getContractStorage(...args))
-
-    const addressBuffer = Buffer.from('a94f5374fce5edbc8e2a8697c15331677e6ebf0b', 'hex')
-    const key = util.toBuffer('0x1234567890123456789012345678901234567890123456789012345678901234')
-    console.log('key',key)
-    console.log('other key', Buffer.from('0x1234567890123456789012345678901234567890123456789012345678901234', 'hex'))
-    const value = Buffer.from('0x1234')
-    await putContractStorage(addressBuffer, key, value)
-    const contract0 = await getContractStorage(addressBuffer, key)
-    st.equal(
-      contract0.toString('hex'),
-      value.toString('hex'),
-      "contract key's value is set in the _storageTries cache",
-    )
-
-    // const encoded = abi.encode(stateManagerAbi, "getStorage", [ address, key, value ])
-    // await promisify(stateManager.setStorage(address, key, value))
-    // const result = await promisify(stateManager.getStorage(address, key))
-
-    // const params = abi.rawEncode(['string'], [greeting])
-
-    // const tx = new Transaction({
-    //   to: contractAddress,
-    //   value: 0,
-    //   gasLimit: 2000000, // We assume that 2M is enough,
-    //   gasPrice: 1,
-    //   data: '0x' + abi.methodID('setGreeting', ['string']).toString('hex') + params.toString('hex'),
-    //   nonce: await getAccountNonce(vm, senderPrivateKey),
-    // })
+async function getAccountNonce(vm, accountPrivateKey) {
+  const account = (await promisify(vm.stateManager.getAccount.bind(vm.stateManager))(
+    util.privateToAddress(accountPrivateKey),
+  ))
+  return account.nonce
+}
+tape('OVM State Dump', async (t) => {
+  t.test('should load in dump correctly', async (st) => {
+    const vm = new VM()
+    await vm.initOVM()
+    st.ok(vm.stateManager)
+    const emCode = await vm.pStateManager.getContractCode(Buffer.from('00000000000000000000000000000000dead0000','hex'))
+    st.equal(emCode.length, 15053, 'has exec manager code at 0x0...dead0000')
+    const smCode = await vm.pStateManager.getContractCode(Buffer.from('00000000000000000000000000000000dead0001','hex'))
+    st.equal(smCode.length, 2731, 'has state manager code at 0x0...dead0001')
+    // st.deepEqual(vm.stateManager._trie.root, util.KECCAK256_RLP, 'it has default trie')
     st.end()
   })
+})
+// tape('OVMStateManager', t => {
+//   t.test('should instantiate', st => {
+//     const stateManager = new OVMStateManager()
+
+//     // st.deepEqual(stateManager._trie.root, util.KECCAK256_RLP, 'it has default root')
+//     // st.equal(stateManager._common.hardfork(), 'petersburg', 'it has default hardfork')
+//     // stateManager.getStateRoot((err, res) => {
+//     //   st.error(err, 'getStateRoot returns no error')
+//     //   st.deepEqual(res, util.KECCAK256_RLP, 'it has default root')
+//     //   st.end()
+//     // })
+//     st.end()
+//   })
+//   t.test('should set and get storage', async st => {
+//     const vm = new VM()
+//     const psm = new PStateManager(vm.stateManager)
+//     // const stateManager = new OVMStateManager()
+//     // const putContractStorage = promisify((...args) => stateManager.putContractStorage(...args))
+//     // const getContractStorage = promisify((...args) => stateManager.getContractStorage(...args))
+
+//     // const addressBuffer = Buffer.from('a94f5374fce5edbc8e2a8697c15331677e6ebf0b', 'hex')
+//     // const key = util.toBuffer('0x1234567890123456789012345678901234567890123456789012345678901234')
+//     // console.log('key',key)
+//     // console.log('other key', Buffer.from('0x1234567890123456789012345678901234567890123456789012345678901234', 'hex'))
+//     // const value = Buffer.from('0x1234')
+//     // await putContractStorage(addressBuffer, key, value)
+//     // const contract0 = await getContractStorage(addressBuffer, key)
+//     // st.equal(
+//     //   contract0.toString('hex'),
+//     //   value.toString('hex'),
+//     //   "contract key's value is set in the _storageTries cache",
+//     // )
+//     // const eei = new EEI(env, state, evm: EVM, common: Common, gasLeft: BN) 
+//     const accountPk = new Buffer(
+//       'e331b6d69882b4cb4ea581d88e0b604039a3de5967688d3dcffdd2270c0fd109',
+//       'hex',
+//     )
+
+//     const accountAddress = util.privateToAddress(accountPk)
+
+//     console.log('Account:', util.bufferToHex(accountAddress))
+
+//     const account = new Account({ balance: 1e18 })
+
+//     await promisify(vm.stateManager.putAccount.bind(vm.stateManager))(accountAddress, account)
+
+//     const address = '0x' + '11'.repeat(20)
+//     const contractAddresss = '0x' + '12'.repeat(20)
+//     const key = '0x' + '22'.repeat(32)
+//     const value = '0x' + '33'.repeat(32)
+
+//     const params = abi.rawEncode(['address', 'bytes32', 'bytes32'], [ address, key, value ])
+//     const data = '0x' + abi.methodID('setStorage', ['address', 'bytes32', 'bytes32']).toString('hex') + params.toString('hex')
+//     console.log('encoded', data)
+//     // const tx = new Transaction({
+//     //   to: contractAddress,
+//     //   value: 0,
+//     //   gasLimit: 2000000, // We assume that 2M is enough,
+//     //   gasPrice: 1,
+//     //   data,
+//     //   nonce: await getAccountNonce(vm, senderPrivateKey),
+//     // })
+  
+//     // tx.sign(senderPrivateKey)
+  
+//     // const setGreetingResult = await vm.runTx({ tx })
+//     st.end()
+//   })
 
   // func TestSloadAndStore(t *testing.T) {
   //   rawStateManagerAbi, _ := ioutil.ReadFile("./StateManagerABI.json")
@@ -145,34 +187,34 @@ tape('OVMStateManager', t => {
 //     st.end()
 //   })
 
-  t.test(
-    'should put and get account, and add to the underlying cache if the account is not found',
-    async st => {
-      const stateManager = new OVMStateManager()
-      const account = createAccount()
+  // t.test(
+  //   'should put and get account, and add to the underlying cache if the account is not found',
+  //   async st => {
+  //     const stateManager = new OVMStateManager()
+  //     const account = createAccount()
 
-      await promisify(stateManager.putAccount.bind(stateManager))(
-        'a94f5374fce5edbc8e2a8697c15331677e6ebf0b',
-        account,
-      )
+  //     await promisify(stateManager.putAccount.bind(stateManager))(
+  //       'a94f5374fce5edbc8e2a8697c15331677e6ebf0b',
+  //       account,
+  //     )
 
-      let res = await promisify(stateManager.getAccount.bind(stateManager))(
-        'a94f5374fce5edbc8e2a8697c15331677e6ebf0b',
-      )
+  //     let res = await promisify(stateManager.getAccount.bind(stateManager))(
+  //       'a94f5374fce5edbc8e2a8697c15331677e6ebf0b',
+  //     )
 
-      st.equal(res.balance.toString('hex'), 'fff384')
+  //     st.equal(res.balance.toString('hex'), 'fff384')
 
-      stateManager._cache.clear()
+  //     stateManager._cache.clear()
 
-      res = await promisify(stateManager.getAccount.bind(stateManager))(
-        'a94f5374fce5edbc8e2a8697c15331677e6ebf0b',
-      )
+  //     res = await promisify(stateManager.getAccount.bind(stateManager))(
+  //       'a94f5374fce5edbc8e2a8697c15331677e6ebf0b',
+  //     )
 
-      st.equal(stateManager._cache._cache.keys[0], 'a94f5374fce5edbc8e2a8697c15331677e6ebf0b')
+  //     st.equal(stateManager._cache._cache.keys[0], 'a94f5374fce5edbc8e2a8697c15331677e6ebf0b')
 
-      st.end()
-    },
-  )
+  //     st.end()
+  //   },
+  // )
 
 //   t.test(
 //     'should call the callback with a boolean representing emptiness, when the account is empty',
@@ -463,4 +505,4 @@ tape('OVMStateManager', t => {
 //     st.fail('Should have failed')
 //     st.end()
 //   })
-})
+// })

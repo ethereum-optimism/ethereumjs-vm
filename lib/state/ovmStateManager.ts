@@ -92,7 +92,7 @@ export default class OVMStateManagerWrapper {
   //   return ret, err
   // }
 
-  async callSMFunction(data:string) {
+  async callSMFunction(data: string) {
     const methodId = data.substring(0, 8)
     const input = data.substring(8)
     const ret = await this.methodIds[methodId].smFunction(input)
@@ -104,7 +104,6 @@ export default class OVMStateManagerWrapper {
    */
 
   setStorage(input: string, cb: any): void {
-    
     // this.putContractStorage(Buffer.from(address, 'hex'), Buffer.from(key, 'hex'),  Buffer.from(value, 'hex'), cb)
   }
 
