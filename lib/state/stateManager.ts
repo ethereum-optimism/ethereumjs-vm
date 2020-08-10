@@ -550,26 +550,26 @@ export default class StateManager {
   }
 
   accountDumpToAccount(accountDump: AccountDump): Account {
-    const { nonce, root, codeHash } = accountDump
+    const { nonce } = accountDump
     const account = new Account()
     let hexNonce: string = nonce.toString(16)
     if (hexNonce.length % 2 !== 0) {
       hexNonce = '0' + hexNonce
     }
     account.nonce = Buffer.from(hexNonce, 'hex')
-    account.stateRoot = Buffer.from(root, 'hex')
-    account.codeHash = Buffer.from(codeHash, 'hex')
     return account
   }
 
-  putStorageDump(address: Buffer, storage: StorageDump, cb: any) {
+  putStorageDump(addressBuffer: Buffer, storage: StorageDump, cb: any) {
     const storageKeys: string[] = Object.keys(storage)
     asyncLib.eachSeries(
       storageKeys,
       (key: string, done: any) => {
         const keyBuffer: Buffer = utils.toBuffer(key)
-        const valueBuffer: Buffer = utils.toBuffer(storage[key])
-        this.putContractStorage(address, keyBuffer, valueBuffer, done)
+        let val = storage[key]
+        val = (val.slice(0, 2) === '0x') ? val.slice(2) : val
+        const valueBuffer: Buffer = Buffer.from(val, 'hex')
+        this.putContractStorage(addressBuffer, keyBuffer, valueBuffer, done)
       },
       cb,
     )
@@ -587,7 +587,7 @@ export default class StateManager {
           if (accountDump.code) {
             // set contract code at address
             const codeBuffer: Buffer = Buffer.from(accountDump.code, 'hex')
-            this.putContractCode(addressBuffer, codeBuffer, cb)
+            this.putContractCode(addressBuffer, codeBuffer, done)
           } else {
             done()
           }
@@ -595,7 +595,7 @@ export default class StateManager {
         (done: any) => {
           if (accountDump.storage) {
             // set storage slots at address
-            this.putStorageDump(addressBuffer, accountDump.storage, cb)
+            this.putStorageDump(addressBuffer, accountDump.storage, done)
           } else {
             done()
           }
