@@ -567,7 +567,7 @@ export default class StateManager {
       (key: string, done: any) => {
         const keyBuffer: Buffer = utils.toBuffer(key)
         let val = storage[key]
-        val = (val.slice(0, 2) === '0x') ? val.slice(2) : val
+        val = val.slice(0, 2) === '0x' ? val.slice(2) : val
         const valueBuffer: Buffer = Buffer.from(val, 'hex')
         this.putContractStorage(addressBuffer, keyBuffer, valueBuffer, done)
       },
