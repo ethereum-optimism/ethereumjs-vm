@@ -1,6 +1,6 @@
-import BN from 'bn.js'
+const BN = require('bn.js')
 
-export const toHexString = (buf: Buffer | BN): string => {
+export const toHexString = (buf: any): string => {
   return '0x' + buf.toString('hex')
 }
 

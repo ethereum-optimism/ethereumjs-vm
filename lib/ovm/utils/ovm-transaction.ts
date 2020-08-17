@@ -15,7 +15,7 @@ export const sendOvmTransaction = (
   const tx = new Transaction({
     nonce: 0,
     gasPrice: 0,
-    gasLimit: 5_000_000,
+    gasLimit: vm._emGasLimit,
     to: to,
     data: calldata,
   })

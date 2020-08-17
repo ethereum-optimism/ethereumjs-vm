@@ -69,6 +69,15 @@ export interface VMOpts {
   contracts?: {
     [name: string]: OVMContract
   }
+  emGasLimit?: number
+}
+
+const sleep = async (ms: number): Promise<void> => {
+  return new Promise<void>(resolve => {
+    setTimeout(() => {
+      resolve()
+    }, ms)
+  })
 }
 
 /**
@@ -88,6 +97,7 @@ export default class VM extends AsyncEventEmitter {
   public readonly pStateManager: PStateManager
 
   // TODO: Add comments here
+  _emGasLimit: number
   _initialized: boolean
   _ovmStateManager: OvmStateManager
   _contracts: {
@@ -158,6 +168,7 @@ export default class VM extends AsyncEventEmitter {
     // TODO: Add comments here
     logger.log('Setting up OVM contract objects')
 
+    this._emGasLimit = opts.emGasLimit || 100_000_000
     this._initialized = opts.initialized || false
     this._ovmStateManager = new OvmStateManager({ vm: this })
 
@@ -178,6 +189,7 @@ export default class VM extends AsyncEventEmitter {
     this._initialized = true
 
     logger.log('Running OVM initialization logic')
+    await sleep(1000)
 
     try {
       // Contract deployment
@@ -215,10 +227,10 @@ export default class VM extends AsyncEventEmitter {
         NULL_ADDRESS,
         {
           OvmTxBaseGasFee: 0,
-          OvmTxMaxGas: 100_000_000,
-          GasRateLimitEpochSeconds: 600,
-          MaxSequencedGasPerEpoch: 100_000_000,
-          MaxQueuedGasPerEpoch: 100_000_000,
+          OvmTxMaxGas: this._emGasLimit,
+          GasRateLimitEpochSeconds: 0,
+          MaxSequencedGasPerEpoch: this._emGasLimit,
+          MaxQueuedGasPerEpoch: this._emGasLimit,
         },
       ])
       logger.log(`Deployed ExecutionManager at: ${this._contracts.ExecutionManager.addressHex}`)
