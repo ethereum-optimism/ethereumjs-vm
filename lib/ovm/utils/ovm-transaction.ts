@@ -9,7 +9,7 @@ export const sendOvmTransaction = (
   vm: VM,
   calldata: string,
   from: string | Buffer,
-  to: string | Buffer | undefined
+  to: string | Buffer | undefined,
 ): Promise<RunTxResult> => {
   // TODO: Make sure these constants are configurable.
   const tx = new Transaction({
@@ -17,7 +17,7 @@ export const sendOvmTransaction = (
     gasPrice: 0,
     gasLimit: 5_000_000,
     to: to,
-    data: calldata
+    data: calldata,
   })
   ;(tx as any)['_from' as any] = from
 
@@ -25,6 +25,6 @@ export const sendOvmTransaction = (
     tx: tx,
     skipBalance: true,
     skipNonce: true,
-    skipExecutionManager: true
+    skipExecutionManager: true,
   })
 }

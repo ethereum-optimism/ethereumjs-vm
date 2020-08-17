@@ -153,7 +153,7 @@ async function _runTx(this: VM, opts: RunOvmTxOpts): Promise<RunTxResult> {
     to: tx.to.toString('hex') !== '' ? tx.to : undefined,
     value: tx.value,
     data: tx.data,
-    skipExecutionManager: opts.skipExecutionManager
+    skipExecutionManager: opts.skipExecutionManager,
   })
   state._wrapped._clearOriginalStorageCache()
   const evm = new EVM(this, txContext, block)

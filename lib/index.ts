@@ -192,13 +192,10 @@ export default class VM extends AsyncEventEmitter {
       logger.log(`Deployed StateManager at: ${this._contracts.StateManager.addressHex}`)
 
       logger.log(`Connecting StateManager to AddressResolver...`)
-      await this._contracts.AddressResolver.sendTransaction(
-        'setAddress',
-        [
-          'StateManager',
-          this._contracts.StateManager.addressHex
-        ]
-      )
+      await this._contracts.AddressResolver.sendTransaction('setAddress', [
+        'StateManager',
+        this._contracts.StateManager.addressHex,
+      ])
       logger.log(`Connected StateManager to AddressResolver.`)
 
       logger.log(`Deploying SafetyChecker...`)
@@ -206,13 +203,10 @@ export default class VM extends AsyncEventEmitter {
       logger.log(`Deployed SafetyChecker at: ${this._contracts.SafetyChecker.addressHex}`)
 
       logger.log(`Connecting SafetyChecker to AddressResolver...`)
-      await this._contracts.AddressResolver.sendTransaction(
-        'setAddress',
-        [
-          'SafetyChecker',
-          this._contracts.SafetyChecker.addressHex
-        ]
-      )
+      await this._contracts.AddressResolver.sendTransaction('setAddress', [
+        'SafetyChecker',
+        this._contracts.SafetyChecker.addressHex,
+      ])
       logger.log(`Connected SafetyChecker to AddressResolver.`)
 
       logger.log(`Deploying ExecutionManager...`)
@@ -225,18 +219,15 @@ export default class VM extends AsyncEventEmitter {
           GasRateLimitEpochSeconds: 600,
           MaxSequencedGasPerEpoch: 100_000_000,
           MaxQueuedGasPerEpoch: 100_000_000,
-        }
+        },
       ])
       logger.log(`Deployed ExecutionManager at: ${this._contracts.ExecutionManager.addressHex}`)
 
       logger.log(`Connecting ExecutionManager to AddressResolver...`)
-      await this._contracts.AddressResolver.sendTransaction(
-        'setAddress',
-        [
-          'ExecutionManager',
-          this._contracts.ExecutionManager.addressHex
-        ]
-      )
+      await this._contracts.AddressResolver.sendTransaction('setAddress', [
+        'ExecutionManager',
+        this._contracts.ExecutionManager.addressHex,
+      ])
       logger.log(`Connected ExecutionManager to AddressResolver.`)
     } catch (err) {
       this._initialized = false
@@ -312,7 +303,7 @@ export default class VM extends AsyncEventEmitter {
       blockchain: this.blockchain,
       common: this._common,
       initialized: this._initialized,
-      contracts: this._contracts
+      contracts: this._contracts,
     })
   }
 

@@ -38,9 +38,7 @@ export class OVMContract {
     return '0x' + this.address.toString('hex')
   }
 
-  async deploy(
-    constructorArgs: any[] = []
-  ): Promise<void> {
+  async deploy(constructorArgs: any[] = []): Promise<void> {
     if (!this.bytecode) {
       throw new Error('Cannot deploy contract without bytecode.')
     }
@@ -48,58 +46,36 @@ export class OVMContract {
     const encodedArgs = this.iface.encodeDeploy(constructorArgs).slice(2)
     const calldata = this.bytecode + encodedArgs
 
-    const deployResult = await sendOvmTransaction(
-      this.vm,
-      calldata,
-      NULL_ADDRESS,
-      undefined
-    )
+    const deployResult = await sendOvmTransaction(this.vm, calldata, NULL_ADDRESS, undefined)
 
     this.address = deployResult.createdAddress
   }
 
-  async sendTransaction(
-    functionName: string,
-    functionArgs: any[] = []
-  ): Promise<any> {
+  async sendTransaction(functionName: string, functionArgs: any[] = []): Promise<any> {
     if (!this.address) {
       throw new Error('Cannot send transaction to an undeployed contract.')
     }
 
-    const calldata = this.iface.encodeFunctionData(
-      functionName,
-      functionArgs
-    )
+    const calldata = this.iface.encodeFunctionData(functionName, functionArgs)
 
-    const txResult = await sendOvmTransaction(
-      this.vm,
-      calldata,
-      NULL_ADDRESS,
-      this.address
-    )
+    const txResult = await sendOvmTransaction(this.vm, calldata, NULL_ADDRESS, this.address)
 
-    return this.iface.decodeFunctionResult(
-      functionName,
-      txResult.execResult.returnValue
-    )
+    return this.iface.decodeFunctionResult(functionName, txResult.execResult.returnValue)
   }
 
   decodeFunctionData(
-    data: Buffer
+    data: Buffer,
   ): {
-    functionName: string,
+    functionName: string
     functionArgs: any[]
   } {
     const methodId = toHexString(data.slice(0, 4))
     const fragment = this.iface.getFunction(methodId)
-    const functionArgs = this.iface.decodeFunctionData(
-      fragment,
-      toHexString(data)
-    ) as any[]
+    const functionArgs = this.iface.decodeFunctionData(fragment, toHexString(data)) as any[]
 
     return {
       functionName: fragment.name,
-      functionArgs: functionArgs
+      functionArgs: functionArgs,
     }
   }
 }

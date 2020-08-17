@@ -50,9 +50,7 @@ export default class Message {
   isTargetMessage(): boolean {
     return (
       (!this.to && !this.originalTargetAddress) ||
-      (this.to && this.originalTargetAddress && 
-        (this.to.equals(this.originalTargetAddress))
-      )
+      (this.to && this.originalTargetAddress && this.to.equals(this.originalTargetAddress))
     )
   }
 
@@ -65,27 +63,24 @@ export default class Message {
       throw new Error('Cannot create a message because the ExecutionManager does not exist.')
     }
 
-    const calldata = vm._contracts.ExecutionManager.iface.encodeFunctionData(
-      'executeTransaction',
-      [
-        Math.floor(Date.now() / 1000),
-        0,
-        this.to ? toHexString(this.to) : NULL_ADDRESS,
-        this.data,
-        toHexString(this.caller),
-        toHexString(this.caller),
-        toHexString(this.gasLimit),
-        true
-      ]
-    )
+    const calldata = vm._contracts.ExecutionManager.iface.encodeFunctionData('executeTransaction', [
+      Math.floor(Date.now() / 1000),
+      0,
+      this.to ? toHexString(this.to) : NULL_ADDRESS,
+      this.data,
+      toHexString(this.caller),
+      toHexString(this.caller),
+      toHexString(this.gasLimit),
+      true,
+    ])
 
     return new Message({
       ...this,
       ...{
         to: vm._contracts.ExecutionManager.address,
         data: fromHexString(calldata),
-        originalTargetAddress: this.to
-      }
+        originalTargetAddress: this.to,
+      },
     })
   }
 }

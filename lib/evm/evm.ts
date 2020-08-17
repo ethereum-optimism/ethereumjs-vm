@@ -138,7 +138,7 @@ export default class EVM {
     // Create a scoped logger for this message, we'll need it.
     let slogger: ScopedLogger
     if (this._isOvmCall) {
-      slogger = logger.scope('executeMessage', 'OVM TRANSACTION TRACE') 
+      slogger = logger.scope('executeMessage', 'OVM TRANSACTION TRACE')
     } else {
       slogger = logger.scope('executeMessage', 'STANDARD TRANSACTION TRACE')
     }
@@ -163,9 +163,11 @@ export default class EVM {
       if (targetContract === 'ExecutionManager') {
         const {
           functionName,
-          functionArgs
+          functionArgs,
         } = this._vm._contracts.ExecutionManager.decodeFunctionData(message.data)
-        slogger.log(`Calling ExecutionManager function ${functionName} with arguments ${functionArgs}`)
+        slogger.log(
+          `Calling ExecutionManager function ${functionName} with arguments ${functionArgs}`,
+        )
       }
 
       result = await this._executeCall(message)
@@ -194,10 +196,12 @@ export default class EVM {
     if (isTargetMessage) {
       this._targetMessageResult = result
     }
-    
+
     if (message.isOvmEntryMessage()) {
       if (!this._targetMessageResult) {
-        const targetAddress = message.originalTargetAddress ? toHexString(message.originalTargetAddress) : 'CONTRACT CREATION'
+        const targetAddress = message.originalTargetAddress
+          ? toHexString(message.originalTargetAddress)
+          : 'CONTRACT CREATION'
         slogger.log(`ERROR: Execution failed to reach target address: ${targetAddress}`)
         throw new Error(`Execution failed to reach target address: ${targetAddress}`)
       }
@@ -207,8 +211,8 @@ export default class EVM {
         createdAddress: this._targetMessageResult.createdAddress,
         execResult: {
           ...result.execResult,
-          returnValue: this._targetMessageResult.execResult.returnValue
-        }
+          returnValue: this._targetMessageResult.execResult.returnValue,
+        },
       }
     }
 
@@ -361,7 +365,7 @@ export default class EVM {
       contract: await this._state.getAccount(message.to || zeros(32)),
       codeAddress: message.codeAddress,
       originalTargetAddress: message.originalTargetAddress,
-      isOvmCall: this._isOvmCall
+      isOvmCall: this._isOvmCall,
     }
     const eei = new EEI(env, this._state, this, this._vm._common, message.gasLimit.clone())
     if (message.selfdestruct) {
@@ -445,7 +449,7 @@ export default class EVM {
     let addr
     if (this._isOvmCall) {
       const [addrHex] = await this._vm._contracts.ExecutionManager.sendTransaction(
-        'getActiveContract'
+        'getActiveContract',
       )
       addr = fromHexString(addrHex)
     } else if (message.salt) {

@@ -406,7 +406,7 @@ export default class EEI {
       data: data,
       isStatic: this._env.isStatic,
       depth: this._env.depth + 1,
-      originalTargetAddress: this._env.originalTargetAddress
+      originalTargetAddress: this._env.originalTargetAddress,
     })
 
     return this._baseCall(msg)

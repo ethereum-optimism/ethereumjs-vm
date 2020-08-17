@@ -8,7 +8,7 @@ import {
   AddressResolverDef,
   ExecutionManagerDef,
   FullStateManagerDef,
-  StubSafetyCheckerDef
+  StubSafetyCheckerDef,
 } from './defs'
 
 interface OVMContractDef {
@@ -19,7 +19,7 @@ interface OVMContractDef {
 const makeOvmContractDef = (def: any): OVMContractDef => {
   return {
     iface: new Interface(def.abi),
-    bytecode: def.bytecode
+    bytecode: def.bytecode,
   }
 }
 
@@ -36,6 +36,6 @@ export const makeOvmContract = (vm: VM, name: string): OVMContract => {
     vm: vm,
     iface: def.iface,
     name: name,
-    bytecode: def.bytecode
+    bytecode: def.bytecode,
   })
 }

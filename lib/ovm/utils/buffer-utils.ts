@@ -9,5 +9,5 @@ export const fromHexString = (str: string): Buffer => {
 }
 
 export const toAddressBuf = (address: string | Buffer): Buffer => {
-  return typeof address === 'string' ? fromHexString(address): address
+  return typeof address === 'string' ? fromHexString(address) : address
 }
