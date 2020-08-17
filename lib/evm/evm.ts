@@ -15,8 +15,11 @@ import TxContext from './txContext'
 import Message from './message'
 import EEI from './eei'
 import { default as Interpreter, InterpreterOpts, RunState } from './interpreter'
+import { toAddressBuf, toHexString, fromHexString } from '../ovm/utils/buffer-utils'
+import { Logger, ScopedLogger } from '../ovm/utils/logger'
 
 const Block = require('ethereumjs-block')
+const logger = new Logger('ethereumjs-ovm:evm')
 
 /**
  * Result of executing a message via the [[EVM]].
@@ -101,6 +104,11 @@ export default class EVM {
    */
   _refund: BN
 
+  // TODO: Add comments here
+  _isOvmCall: boolean = false
+  _targetMessage: Message | undefined
+  _targetMessageResult: EVMResult | undefined
+
   constructor(vm: any, txContext: TxContext, block: any) {
     this._vm = vm
     this._state = this._vm.pStateManager
@@ -119,9 +127,53 @@ export default class EVM {
 
     await this._state.checkpoint()
 
+    // Some light sanitization, just in case.
+    message.caller = toAddressBuf(message.caller)
+
+    if (message.isOvmEntryMessage()) {
+      message = message.toOvmMessage(this._vm)
+      this._isOvmCall = true
+    }
+
+    // Create a scoped logger for this message, we'll need it.
+    let slogger: ScopedLogger
+    if (this._isOvmCall) {
+      slogger = logger.scope('executeMessage', 'OVM TRANSACTION TRACE') 
+    } else {
+      slogger = logger.scope('executeMessage', 'STANDARD TRANSACTION TRACE')
+    }
+
+    slogger.open()
+
+    let isTargetMessage = !this._targetMessage && message.isTargetMessage()
+    if (isTargetMessage) {
+      this._targetMessage = message
+    }
+
     let result
     if (message.to) {
+      // TODO: Temporary hack until we get dynamic execution addresses.
+      if (toHexString(message.to) === '0x6454c9d69a4721feba60e26a367bd4d56196ee7c') {
+        message.to = this._vm._contracts.ExecutionManager.address
+      }
+
+      const targetContract = this._vm.getContractName(message.to)
+      slogger.log(`Processing a message call to: ${toHexString(message.to)} (${targetContract})`)
+
+      if (targetContract === 'ExecutionManager') {
+        const {
+          functionName,
+          functionArgs
+        } = this._vm._contracts.ExecutionManager.decodeFunctionData(message.data)
+        slogger.log(`Calling ExecutionManager function ${functionName} with arguments ${functionArgs}`)
+      }
+
       result = await this._executeCall(message)
+
+      if (targetContract === 'StateManager') {
+        const ovmResult = await this._vm._ovmStateManager.handleCall(message)
+        result.execResult.returnValue = ovmResult
+      }
     } else {
       result = await this._executeCreate(message)
     }
@@ -138,6 +190,29 @@ export default class EVM {
     }
 
     await this._vm._emit('afterMessage', result)
+
+    if (isTargetMessage) {
+      this._targetMessageResult = result
+    }
+    
+    if (message.isOvmEntryMessage()) {
+      if (!this._targetMessageResult) {
+        const targetAddress = message.originalTargetAddress ? toHexString(message.originalTargetAddress) : 'CONTRACT CREATION'
+        slogger.log(`ERROR: Execution failed to reach target address: ${targetAddress}`)
+        throw new Error(`Execution failed to reach target address: ${targetAddress}`)
+      }
+
+      result = {
+        ...result,
+        createdAddress: this._targetMessageResult.createdAddress,
+        execResult: {
+          ...result.execResult,
+          returnValue: this._targetMessageResult.execResult.returnValue
+        }
+      }
+    }
+
+    slogger.close()
 
     return result
   }
@@ -215,7 +290,9 @@ export default class EVM {
     await this._vm._emit('newContract', newContractEvent)
 
     toAccount = await this._state.getAccount(message.to)
-    toAccount.nonce = new BN(toAccount.nonce).addn(1).toArrayLike(Buffer)
+    if (!this._isOvmCall) {
+      toAccount.nonce = new BN(toAccount.nonce).addn(1).toArrayLike(Buffer)
+    }
 
     // Add tx value to the `to` account
     await this._addToBalance(toAccount, message)
@@ -283,6 +360,8 @@ export default class EVM {
       block: this._block || new Block(),
       contract: await this._state.getAccount(message.to || zeros(32)),
       codeAddress: message.codeAddress,
+      originalTargetAddress: message.originalTargetAddress,
+      isOvmCall: this._isOvmCall
     }
     const eei = new EEI(env, this._state, this, this._vm._common, message.gasLimit.clone())
     if (message.selfdestruct) {
@@ -364,7 +443,12 @@ export default class EVM {
 
   async _generateAddress(message: Message): Promise<Buffer> {
     let addr
-    if (message.salt) {
+    if (this._isOvmCall) {
+      const [addrHex] = await this._vm._contracts.ExecutionManager.sendTransaction(
+        'getActiveContract'
+      )
+      addr = fromHexString(addrHex)
+    } else if (message.salt) {
       addr = generateAddress2(message.caller, message.salt, message.code as Buffer)
     } else {
       const acc = await this._state.getAccount(message.caller)
@@ -376,7 +460,7 @@ export default class EVM {
 
   async _reduceSenderBalance(account: Account, message: Message): Promise<void> {
     const newBalance = new BN(account.balance).sub(message.value)
-    account.balance = toBuffer(newBalance)
+    //account.balance = toBuffer(newBalance)
     return this._state.putAccount(toBuffer(message.caller), account)
   }
 
@@ -385,7 +469,7 @@ export default class EVM {
     if (newBalance.gt(MAX_INTEGER)) {
       throw new Error('Value overflow')
     }
-    toAccount.balance = toBuffer(newBalance)
+    //toAccount.balance = toBuffer(newBalance)
     // putAccount as the nonce may have changed for contract creation
     return this._state.putAccount(toBuffer(message.to), toAccount)
   }

@@ -27,6 +27,10 @@ export interface Env {
   contract: Account
   // Different than address for DELEGATECALL and CALLCODE
   codeAddress: Buffer
+
+  // TODO: Add comments here
+  isOvmCall: boolean
+  originalTargetAddress: Buffer
 }
 
 /**
@@ -358,12 +362,12 @@ export default class EEI {
     // Add to beneficiary balance
     const toAccount = await this._state.getAccount(toAddress)
     const newBalance = new BN(this._env.contract.balance).add(new BN(toAccount.balance))
-    toAccount.balance = toBuffer(newBalance)
+    //toAccount.balance = toBuffer(newBalance)
     await this._state.putAccount(toAddress, toAccount)
 
     // Subtract from contract balance
     const account = await this._state.getAccount(this._env.address)
-    account.balance = toBuffer(new BN(0))
+    //account.balance = toBuffer(new BN(0))
     await this._state.putAccount(this._env.address, account)
 
     trap(ERROR.STOP)
@@ -402,6 +406,7 @@ export default class EEI {
       data: data,
       isStatic: this._env.isStatic,
       depth: this._env.depth + 1,
+      originalTargetAddress: this._env.originalTargetAddress
     })
 
     return this._baseCall(msg)
@@ -420,6 +425,8 @@ export default class EEI {
       data: data,
       isStatic: this._env.isStatic,
       depth: this._env.depth + 1,
+      originalTargetAddress: this._env.originalTargetAddress,
+      isOvmCall: this._env.isOvmCall,
     })
 
     return this._baseCall(msg)
@@ -439,6 +446,8 @@ export default class EEI {
       data: data,
       isStatic: true,
       depth: this._env.depth + 1,
+      originalTargetAddress: this._env.originalTargetAddress,
+      isOvmCall: this._env.isOvmCall,
     })
 
     return this._baseCall(msg)
@@ -459,6 +468,8 @@ export default class EEI {
       isStatic: this._env.isStatic,
       delegatecall: true,
       depth: this._env.depth + 1,
+      originalTargetAddress: this._env.originalTargetAddress,
+      isOvmCall: this._env.isOvmCall,
     })
 
     return this._baseCall(msg)
@@ -520,6 +531,8 @@ export default class EEI {
       salt: salt,
       depth: this._env.depth + 1,
       selfdestruct: selfdestruct,
+      originalTargetAddress: this._env.originalTargetAddress,
+      isOvmCall: this._env.isOvmCall,
     })
 
     // empty the return data buffer
@@ -533,7 +546,9 @@ export default class EEI {
       return new BN(0)
     }
 
-    this._env.contract.nonce = toBuffer(new BN(this._env.contract.nonce).addn(1))
+    if (!this._env.isOvmCall) {
+      this._env.contract.nonce = toBuffer(new BN(this._env.contract.nonce).addn(1))
+    }
     await this._state.putAccount(this._env.address, this._env.contract)
 
     const results = await this._evm.executeMessage(msg)

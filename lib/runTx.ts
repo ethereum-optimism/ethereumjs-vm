@@ -32,6 +32,11 @@ export interface RunTxOpts {
   skipBalance?: boolean
 }
 
+// TODO: Add comments here
+export interface RunOvmTxOpts extends RunTxOpts {
+  skipExecutionManager?: boolean
+}
+
 /**
  * Execution result of a transaction
  */
@@ -53,7 +58,7 @@ export interface RunTxResult extends EVMResult {
 /**
  * @ignore
  */
-export default async function runTx(this: VM, opts: RunTxOpts): Promise<RunTxResult> {
+export default async function runTx(this: VM, opts: RunOvmTxOpts): Promise<RunTxResult> {
   if (opts === undefined) {
     throw new Error('invalid input, opts must be provided')
   }
@@ -86,7 +91,7 @@ export default async function runTx(this: VM, opts: RunTxOpts): Promise<RunTxRes
   }
 }
 
-async function _runTx(this: VM, opts: RunTxOpts): Promise<RunTxResult> {
+async function _runTx(this: VM, opts: RunOvmTxOpts): Promise<RunTxResult> {
   const block = opts.block
   const tx = opts.tx
   const state = this.pStateManager
@@ -108,6 +113,11 @@ async function _runTx(this: VM, opts: RunTxOpts): Promise<RunTxResult> {
   }
   gasLimit.isub(basefee)
 
+  if (!opts.skipExecutionManager) {
+    opts.skipNonce = true
+    opts.skipBalance = true
+  }
+
   // Check from account's balance and nonce
   let fromAccount = await state.getAccount(tx.getSenderAddress())
   if (!opts.skipBalance && new BN(fromAccount.balance).lt(tx.getUpfrontCost())) {
@@ -125,10 +135,12 @@ async function _runTx(this: VM, opts: RunTxOpts): Promise<RunTxResult> {
     )
   }
   // Update from account's nonce and balance
-  fromAccount.nonce = toBuffer(new BN(fromAccount.nonce).addn(1))
-  fromAccount.balance = toBuffer(
-    new BN(fromAccount.balance).sub(new BN(tx.gasLimit).mul(new BN(tx.gasPrice))),
-  )
+  if (opts.skipExecutionManager) {
+    fromAccount.nonce = toBuffer(new BN(fromAccount.nonce).addn(1))
+  }
+  //fromAccount.balance = toBuffer(
+  //  new BN(fromAccount.balance).sub(new BN(tx.gasLimit).mul(new BN(tx.gasPrice))),
+  //)
   await state.putAccount(tx.getSenderAddress(), fromAccount)
 
   /*
@@ -141,6 +153,7 @@ async function _runTx(this: VM, opts: RunTxOpts): Promise<RunTxResult> {
     to: tx.to.toString('hex') !== '' ? tx.to : undefined,
     value: tx.value,
     data: tx.data,
+    skipExecutionManager: opts.skipExecutionManager
   })
   state._wrapped._clearOriginalStorageCache()
   const evm = new EVM(this, txContext, block)
@@ -170,13 +183,13 @@ async function _runTx(this: VM, opts: RunTxOpts): Promise<RunTxResult> {
     .sub(results.gasUsed)
     .mul(new BN(tx.gasPrice))
     .add(new BN(fromAccount.balance))
-  fromAccount.balance = toBuffer(finalFromBalance)
+  //fromAccount.balance = toBuffer(finalFromBalance)
   await state.putAccount(toBuffer(tx.getSenderAddress()), fromAccount)
 
   // Update miner's balance
   const minerAccount = await state.getAccount(block.header.coinbase)
   // add the amount spent on gas to the miner's account
-  minerAccount.balance = toBuffer(new BN(minerAccount.balance).add(results.amountSpent))
+  //minerAccount.balance = toBuffer(new BN(minerAccount.balance).add(results.amountSpent))
   if (!new BN(minerAccount.balance).isZero()) {
     await state.putAccount(block.header.coinbase, minerAccount)
   }

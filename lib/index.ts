@@ -5,15 +5,22 @@ import Common from 'ethereumjs-common'
 import { StateManager } from './state'
 import { default as runCode, RunCodeOpts } from './runCode'
 import { default as runCall, RunCallOpts } from './runCall'
-import { default as runTx, RunTxOpts, RunTxResult } from './runTx'
+import { default as runTx, RunTxResult, RunOvmTxOpts } from './runTx'
 import { default as runBlock, RunBlockOpts, RunBlockResult } from './runBlock'
 import { EVMResult, ExecResult } from './evm/evm'
 import { OpcodeList, getOpcodesForHF } from './evm/opcodes'
 import runBlockchain from './runBlockchain'
 import PStateManager from './state/promisified'
+import { OVMContract } from './ovm/utils/ovm-contract'
+import { OvmStateManager } from './ovm/utils/ovm-state-manager'
+import { makeOvmContract } from './ovm/utils/contracts'
+import { Logger } from './ovm/utils/logger'
+import { NULL_ADDRESS } from './ovm/utils/constants'
+import { toHexString } from './ovm/utils/buffer-utils'
 const promisify = require('util.promisify')
 const AsyncEventEmitter = require('async-eventemitter')
 const Trie = require('merkle-patricia-tree/secure.js')
+const logger = new Logger('ethereumjs-ovm:vm-wrapper')
 
 /**
  * Options for instantiating a [[VM]].
@@ -56,6 +63,12 @@ export interface VMOpts {
    */
   allowUnlimitedContractSize?: boolean
   common?: Common
+
+  // TODO: Add comments here
+  initialized?: boolean
+  contracts?: {
+    [name: string]: OVMContract
+  }
 }
 
 /**
@@ -73,6 +86,13 @@ export default class VM extends AsyncEventEmitter {
   _opcodes: OpcodeList
   public readonly _emit: (topic: string, data: any) => Promise<void>
   public readonly pStateManager: PStateManager
+
+  // TODO: Add comments here
+  _initialized: boolean
+  _ovmStateManager: OvmStateManager
+  _contracts: {
+    [name: string]: OVMContract
+  } = {}
 
   /**
    * Instantiates a new [[VM]] Object.
@@ -134,6 +154,94 @@ export default class VM extends AsyncEventEmitter {
     // We cache this promisified function as it's called from the main execution loop, and
     // promisifying each time has a huge performance impact.
     this._emit = promisify(this.emit.bind(this))
+
+    // TODO: Add comments here
+    logger.log('Setting up OVM contract objects')
+
+    this._initialized = opts.initialized || false
+    this._ovmStateManager = new OvmStateManager({ vm: this })
+
+    if (opts.contracts) {
+      this._contracts = opts.contracts
+    } else {
+      this._contracts.AddressResolver = makeOvmContract(this, 'AddressResolver')
+      this._contracts.ExecutionManager = makeOvmContract(this, 'ExecutionManager')
+      this._contracts.StateManager = makeOvmContract(this, 'StateManager')
+      this._contracts.SafetyChecker = makeOvmContract(this, 'SafetyChecker')
+    }
+  }
+
+  async init(): Promise<void> {
+    if (this._initialized) {
+      return
+    }
+    this._initialized = true
+
+    logger.log('Running OVM initialization logic')
+
+    try {
+      // Contract deployment
+      logger.log(`Deploying OVM contracts:`)
+
+      logger.log(`Deploying AddressResolver...`)
+      await this._contracts.AddressResolver.deploy()
+      logger.log(`Deployed AddressResolver at: ${this._contracts.AddressResolver.addressHex}`)
+
+      logger.log(`Deploying StateManager...`)
+      await this._contracts.StateManager.deploy()
+      logger.log(`Deployed StateManager at: ${this._contracts.StateManager.addressHex}`)
+
+      logger.log(`Connecting StateManager to AddressResolver...`)
+      await this._contracts.AddressResolver.sendTransaction(
+        'setAddress',
+        [
+          'StateManager',
+          this._contracts.StateManager.addressHex
+        ]
+      )
+      logger.log(`Connected StateManager to AddressResolver.`)
+
+      logger.log(`Deploying SafetyChecker...`)
+      await this._contracts.SafetyChecker.deploy()
+      logger.log(`Deployed SafetyChecker at: ${this._contracts.SafetyChecker.addressHex}`)
+
+      logger.log(`Connecting SafetyChecker to AddressResolver...`)
+      await this._contracts.AddressResolver.sendTransaction(
+        'setAddress',
+        [
+          'SafetyChecker',
+          this._contracts.SafetyChecker.addressHex
+        ]
+      )
+      logger.log(`Connected SafetyChecker to AddressResolver.`)
+
+      logger.log(`Deploying ExecutionManager...`)
+      await this._contracts.ExecutionManager.deploy([
+        this._contracts.AddressResolver.addressHex,
+        NULL_ADDRESS,
+        {
+          OvmTxBaseGasFee: 0,
+          OvmTxMaxGas: 100_000_000,
+          GasRateLimitEpochSeconds: 600,
+          MaxSequencedGasPerEpoch: 100_000_000,
+          MaxQueuedGasPerEpoch: 100_000_000,
+        }
+      ])
+      logger.log(`Deployed ExecutionManager at: ${this._contracts.ExecutionManager.addressHex}`)
+
+      logger.log(`Connecting ExecutionManager to AddressResolver...`)
+      await this._contracts.AddressResolver.sendTransaction(
+        'setAddress',
+        [
+          'ExecutionManager',
+          this._contracts.ExecutionManager.addressHex
+        ]
+      )
+      logger.log(`Connected ExecutionManager to AddressResolver.`)
+    } catch (err) {
+      this._initialized = false
+      throw err
+    }
   }
 
   /**
@@ -143,7 +251,8 @@ export default class VM extends AsyncEventEmitter {
    *
    * @param blockchain -  A [blockchain](https://github.com/ethereum/ethereumjs-blockchain) object to process
    */
-  runBlockchain(blockchain: any): Promise<void> {
+  async runBlockchain(blockchain: any): Promise<void> {
+    await this.init()
     return runBlockchain.bind(this)(blockchain)
   }
 
@@ -157,7 +266,8 @@ export default class VM extends AsyncEventEmitter {
    * @param opts - Default values for options:
    *  - `generate`: false
    */
-  runBlock(opts: RunBlockOpts): Promise<RunBlockResult> {
+  async runBlock(opts: RunBlockOpts): Promise<RunBlockResult> {
+    await this.init()
     return runBlock.bind(this)(opts)
   }
 
@@ -168,7 +278,8 @@ export default class VM extends AsyncEventEmitter {
    * when the error is thrown from an event handler. In the latter case the state may or may not be
    * reverted.
    */
-  runTx(opts: RunTxOpts): Promise<RunTxResult> {
+  async runTx(opts: RunOvmTxOpts): Promise<RunTxResult> {
+    await this.init()
     return runTx.bind(this)(opts)
   }
 
@@ -177,7 +288,8 @@ export default class VM extends AsyncEventEmitter {
    *
    * This method modifies the state.
    */
-  runCall(opts: RunCallOpts): Promise<EVMResult> {
+  async runCall(opts: RunCallOpts): Promise<EVMResult> {
+    await this.init()
     return runCall.bind(this)(opts)
   }
 
@@ -186,7 +298,8 @@ export default class VM extends AsyncEventEmitter {
    *
    * This method modifies the state.
    */
-  runCode(opts: RunCodeOpts): Promise<ExecResult> {
+  async runCode(opts: RunCodeOpts): Promise<ExecResult> {
+    await this.init()
     return runCode.bind(this)(opts)
   }
 
@@ -198,6 +311,18 @@ export default class VM extends AsyncEventEmitter {
       stateManager: this.stateManager.copy(),
       blockchain: this.blockchain,
       common: this._common,
+      initialized: this._initialized,
+      contracts: this._contracts
     })
+  }
+
+  getContractName(address: Buffer): string {
+    for (const contract of Object.values(this._contracts)) {
+      if (contract.address && toHexString(address) === contract.addressHex) {
+        return contract.name
+      }
+    }
+
+    return 'Unknown Contract'
   }
 }

@@ -286,6 +286,6 @@ function calculateMinerReward(minerReward: BN, ommersNum: number): BN {
 
 async function rewardAccount(state: PStateManager, address: Buffer, reward: BN): Promise<void> {
   const account = await state.getAccount(address)
-  account.balance = toBuffer(new BN(account.balance).add(reward))
+  //account.balance = toBuffer(new BN(account.balance).add(reward))
   await state.putAccount(address, account)
 }
