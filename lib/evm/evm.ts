@@ -15,7 +15,7 @@ import TxContext from './txContext'
 import Message from './message'
 import EEI from './eei'
 import { default as Interpreter, InterpreterOpts, RunState } from './interpreter'
-import { toAddressBuf, toHexString, fromHexString } from '../ovm/utils/buffer-utils'
+import { toAddressBuf, toHexString, fromHexString, toHexAddress } from '../ovm/utils/buffer-utils'
 import { Logger, ScopedLogger } from '../ovm/utils/logger'
 
 const Block = require('ethereumjs-block')
@@ -451,9 +451,13 @@ export default class EVM {
   async _generateAddress(message: Message): Promise<Buffer> {
     let addr
     if (this._isOvmCall) {
-      addr = await this._vm.pStateManager.getContractStorage(
-        this._vm._contracts.ExecutionManager.address,
-        Buffer.from('00'.repeat(31) + '05', 'hex'),
+      addr = fromHexString(
+        toHexAddress(
+          await this._vm.pStateManager.getContractStorage(
+            this._vm._contracts.ExecutionManager.address,
+            Buffer.from('00'.repeat(31) + '05', 'hex'),
+          ),
+        ),
       )
     } else if (message.salt) {
       addr = generateAddress2(message.caller, message.salt, message.code as Buffer)

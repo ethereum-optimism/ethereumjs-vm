@@ -1,5 +1,9 @@
 const BN = require('bn.js')
 
+export const toHexAddress = (buf: any): string => {
+  return '0x' + buf.toString('hex').padStart(40, '0')
+}
+
 export const toHexString = (buf: any): string => {
   return '0x' + buf.toString('hex')
 }
