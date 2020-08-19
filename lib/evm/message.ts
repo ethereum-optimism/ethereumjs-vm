@@ -58,19 +58,19 @@ export default class Message {
     return this.depth === 0 && !this.skipExecutionManager
   }
 
-  toOvmMessage(vm: VM): Message {
+  toOvmMessage(vm: VM, block: any): Message {
     if (!vm._contracts.ExecutionManager.address) {
       throw new Error('Cannot create a message because the ExecutionManager does not exist.')
     }
 
     const calldata = vm._contracts.ExecutionManager.iface.encodeFunctionData('executeTransaction', [
-      Math.floor(Date.now() / 1000),
+      toHexString(new BN(block.header.timestamp).toBuffer()),
       0,
       this.to ? toHexString(this.to) : NULL_ADDRESS,
       this.data,
       toHexString(this.caller),
       toHexString(this.caller),
-      toHexString(this.gasLimit),
+      toHexString(new BN(vm._emGasLimit).toBuffer()),
       true,
     ])
 

@@ -131,7 +131,7 @@ export default class EVM {
     message.caller = toAddressBuf(message.caller)
 
     if (message.isOvmEntryMessage()) {
-      message = message.toOvmMessage(this._vm)
+      message = message.toOvmMessage(this._vm, this._block || new Block())
       this._isOvmCall = true
     }
 
@@ -198,21 +198,24 @@ export default class EVM {
     }
 
     if (message.isOvmEntryMessage()) {
-      if (!this._targetMessageResult) {
+      if (this._targetMessageResult) {
+        result = {
+          ...result,
+          createdAddress: this._targetMessageResult.createdAddress,
+          execResult: {
+            ...result.execResult,
+            returnValue: this._targetMessageResult.execResult.returnValue,
+          },
+        }
+      } else {
         const targetAddress = message.originalTargetAddress
           ? toHexString(message.originalTargetAddress)
           : 'CONTRACT CREATION'
         slogger.log(`ERROR: Execution failed to reach target address: ${targetAddress}`)
-        throw new Error(`Execution failed to reach target address: ${targetAddress}`)
-      }
 
-      result = {
-        ...result,
-        createdAddress: this._targetMessageResult.createdAddress,
-        execResult: {
-          ...result.execResult,
-          returnValue: this._targetMessageResult.execResult.returnValue,
-        },
+        if (!err) {
+          throw new Error(`Execution failed to reach target address: ${targetAddress}`)
+        }
       }
     }
 
@@ -448,10 +451,10 @@ export default class EVM {
   async _generateAddress(message: Message): Promise<Buffer> {
     let addr
     if (this._isOvmCall) {
-      const [addrHex] = await this._vm._contracts.ExecutionManager.sendTransaction(
-        'getActiveContract',
+      addr = await this._vm.pStateManager.getContractStorage(
+        this._vm._contracts.ExecutionManager.address,
+        Buffer.from('00'.repeat(31) + '05', 'hex'),
       )
-      addr = fromHexString(addrHex)
     } else if (message.salt) {
       addr = generateAddress2(message.caller, message.salt, message.code as Buffer)
     } else {
