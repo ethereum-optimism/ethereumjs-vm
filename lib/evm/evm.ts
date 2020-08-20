@@ -132,9 +132,13 @@ export default class EVM {
     // Some light sanitization, just in case.
     message.caller = toAddressBuf(message.caller)
 
+    // We need to treat OVM messages differently than "standard" transactions.
     if (message.isOvmEntryMessage()) {
       message = message.toOvmMessage(this._vm, this._block || new Block())
       this._isOvmCall = true
+
+      // We snapshot the ExecutionManager and StateManager contracts and reset
+      // them later so their state doesn't influence the state trie.
       await this._makeContractSnapshot()
     }
 
@@ -148,6 +152,9 @@ export default class EVM {
 
     slogger.open()
 
+    // First message call to the target contract is the "target message".
+    // We need to keep track of this so that our result contains the correct
+    // return values and logs.
     let isTargetMessage = !this._targetMessage && message.isTargetMessage()
     if (isTargetMessage) {
       this._targetMessage = message
@@ -163,6 +170,7 @@ export default class EVM {
       const targetContract = this._vm.getContractName(message.to)
       slogger.log(`Processing a message call to: ${toHexString(message.to)} (${targetContract})`)
 
+      // Just some basic logging here.
       if (targetContract === 'ExecutionManager') {
         const {
           functionName,
@@ -175,6 +183,8 @@ export default class EVM {
 
       result = await this._executeCall(message)
 
+      // We need to hook into calls to the StateManager so that we manipulate
+      // the VM's state manager, not just the contract.
       if (targetContract === 'StateManager') {
         const ovmResult = await this._vm._ovmStateManager.handleCall(message)
         result.execResult.returnValue = ovmResult
@@ -196,14 +206,21 @@ export default class EVM {
 
     await this._vm._emit('afterMessage', result)
 
+    // Store the result of executing our target message for later.
     if (isTargetMessage) {
       this._targetMessageResult = result
     }
 
+    // OVM transaction results need to be manipulated or they'll be incorrect.
     if (message.isOvmEntryMessage()) {
       if (this._targetMessageResult) {
+        // Reset the state of our ExecutionManager and StateManager contracts
+        // so that they don't influence the state trie.
         await this._resetContractSnapshot()
 
+        // Address attached to any logs will be the ExecutionManager by default.
+        // We need to replace these addresses with the target address so
+        // clients can properly detect and decode them.
         let logs: any[] = []
         if (this._targetMessageResult.execResult.logs) {
           logs = this._targetMessageResult.execResult.logs.map(log => {
@@ -214,6 +231,7 @@ export default class EVM {
           })
         }
 
+        // Attach the corrected values to our result.
         result = {
           ...result,
           createdAddress: this._targetMessageResult.createdAddress,
@@ -224,6 +242,9 @@ export default class EVM {
           },
         }
       } else {
+        // We expect that the target address will be hit during execution.
+        // Otherwise, we've got a problem.
+
         const targetAddress = message.originalTargetAddress
           ? toHexString(message.originalTargetAddress)
           : 'CONTRACT CREATION'
@@ -467,6 +488,11 @@ export default class EVM {
   async _generateAddress(message: Message): Promise<Buffer> {
     let addr
     if (this._isOvmCall) {
+      // We're inside an OVM call, so we need to deploy to the address defined
+      // within the ExecutionManager's execution context. We retrieve this
+      // address by directly querying the state trie (as opposed to sending a
+      // contract call transaction) as to not modify the trie.
+
       addr = fromHexString(
         toHexAddress(
           await this._vm.pStateManager.getContractStorage(
