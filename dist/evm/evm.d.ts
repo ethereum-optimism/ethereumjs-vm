@@ -80,6 +80,8 @@ export default class EVM {
      * Amount of gas to refund from deleting storage values
      */
     _refund: BN;
+    _initialEMState: Account | undefined;
+    _initialSMState: Account | undefined;
     _isOvmCall: boolean;
     _targetMessage: Message | undefined;
     _targetMessageResult: EVMResult | undefined;
@@ -111,4 +113,6 @@ export default class EVM {
     _reduceSenderBalance(account: Account, message: Message): Promise<void>;
     _addToBalance(toAccount: Account, message: Message): Promise<void>;
     _touchAccount(address: Buffer): Promise<void>;
+    _makeContractSnapshot(): Promise<void>;
+    _resetContractSnapshot(): Promise<void>;
 }

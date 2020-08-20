@@ -74,7 +74,6 @@ exports.OOGResult = OOGResult;
  */
 var EVM = /** @class */ (function () {
     function EVM(vm, txContext, block) {
-        // TODO: Add comments here
         this._isOvmCall = false;
         this._vm = vm;
         this._state = this._vm.pStateManager;
@@ -89,7 +88,8 @@ var EVM = /** @class */ (function () {
      */
     EVM.prototype.executeMessage = function (message) {
         return __awaiter(this, void 0, void 0, function () {
-            var slogger, isTargetMessage, result, targetContract, _a, functionName, functionArgs, ovmResult, err, targetAddress;
+            var slogger, isTargetMessage, result, targetContract, _a, functionName, functionArgs, ovmResult, err, logs, targetAddress;
+            var _this = this;
             return __generator(this, function (_b) {
                 switch (_b.label) {
                     case 0: return [4 /*yield*/, this._vm._emit('beforeMessage', message)];
@@ -102,10 +102,14 @@ var EVM = /** @class */ (function () {
                         _b.sent();
                         // Some light sanitization, just in case.
                         message.caller = buffer_utils_1.toAddressBuf(message.caller);
-                        if (message.isOvmEntryMessage()) {
-                            message = message.toOvmMessage(this._vm, this._block || new Block());
-                            this._isOvmCall = true;
-                        }
+                        if (!message.isOvmEntryMessage()) return [3 /*break*/, 4];
+                        message = message.toOvmMessage(this._vm, this._block || new Block());
+                        this._isOvmCall = true;
+                        return [4 /*yield*/, this._makeContractSnapshot()];
+                    case 3:
+                        _b.sent();
+                        _b.label = 4;
+                    case 4:
                         if (this._isOvmCall) {
                             slogger = logger.scope('executeMessage', 'OVM TRANSACTION TRACE');
                         }
@@ -117,7 +121,7 @@ var EVM = /** @class */ (function () {
                         if (isTargetMessage) {
                             this._targetMessage = message;
                         }
-                        if (!message.to) return [3 /*break*/, 6];
+                        if (!message.to) return [3 /*break*/, 8];
                         // TODO: Temporary hack until we get dynamic execution addresses.
                         if (buffer_utils_1.toHexString(message.to) === '0x6454c9d69a4721feba60e26a367bd4d56196ee7c') {
                             message.to = this._vm._contracts.ExecutionManager.address;
@@ -129,54 +133,64 @@ var EVM = /** @class */ (function () {
                             slogger.log("Calling ExecutionManager function " + functionName + " with arguments " + functionArgs);
                         }
                         return [4 /*yield*/, this._executeCall(message)];
-                    case 3:
+                    case 5:
                         result = _b.sent();
-                        if (!(targetContract === 'StateManager')) return [3 /*break*/, 5];
+                        if (!(targetContract === 'StateManager')) return [3 /*break*/, 7];
                         return [4 /*yield*/, this._vm._ovmStateManager.handleCall(message)];
-                    case 4:
+                    case 6:
                         ovmResult = _b.sent();
                         result.execResult.returnValue = ovmResult;
-                        _b.label = 5;
-                    case 5: return [3 /*break*/, 8];
-                    case 6: return [4 /*yield*/, this._executeCreate(message)];
-                    case 7:
+                        _b.label = 7;
+                    case 7: return [3 /*break*/, 10];
+                    case 8: return [4 /*yield*/, this._executeCreate(message)];
+                    case 9:
                         result = _b.sent();
-                        _b.label = 8;
-                    case 8:
+                        _b.label = 10;
+                    case 10:
                         // TODO: Move `gasRefund` to a tx-level result object
                         // instead of `ExecResult`.
                         result.execResult.gasRefund = this._refund.clone();
                         err = result.execResult.exceptionError;
-                        if (!err) return [3 /*break*/, 10];
+                        if (!err) return [3 /*break*/, 12];
                         result.execResult.logs = [];
                         return [4 /*yield*/, this._state.revert()];
-                    case 9:
-                        _b.sent();
-                        return [3 /*break*/, 12];
-                    case 10: return [4 /*yield*/, this._state.commit()];
                     case 11:
                         _b.sent();
-                        _b.label = 12;
-                    case 12: return [4 /*yield*/, this._vm._emit('afterMessage', result)];
+                        return [3 /*break*/, 14];
+                    case 12: return [4 /*yield*/, this._state.commit()];
                     case 13:
+                        _b.sent();
+                        _b.label = 14;
+                    case 14: return [4 /*yield*/, this._vm._emit('afterMessage', result)];
+                    case 15:
                         _b.sent();
                         if (isTargetMessage) {
                             this._targetMessageResult = result;
                         }
-                        if (message.isOvmEntryMessage()) {
-                            if (this._targetMessageResult) {
-                                result = __assign(__assign({}, result), { createdAddress: this._targetMessageResult.createdAddress, execResult: __assign(__assign({}, result.execResult), { returnValue: this._targetMessageResult.execResult.returnValue }) });
-                            }
-                            else {
-                                targetAddress = message.originalTargetAddress
-                                    ? buffer_utils_1.toHexString(message.originalTargetAddress)
-                                    : 'CONTRACT CREATION';
-                                slogger.log("ERROR: Execution failed to reach target address: " + targetAddress);
-                                if (!err) {
-                                    throw new Error("Execution failed to reach target address: " + targetAddress);
-                                }
-                            }
+                        if (!message.isOvmEntryMessage()) return [3 /*break*/, 18];
+                        if (!this._targetMessageResult) return [3 /*break*/, 17];
+                        return [4 /*yield*/, this._resetContractSnapshot()];
+                    case 16:
+                        _b.sent();
+                        logs = [];
+                        if (this._targetMessageResult.execResult.logs) {
+                            logs = this._targetMessageResult.execResult.logs.map(function (log) {
+                                log[0] = _this._targetMessage.to || _this._targetMessageResult.createdAddress;
+                                return log;
+                            });
                         }
+                        result = __assign(__assign({}, result), { createdAddress: this._targetMessageResult.createdAddress, execResult: __assign(__assign({}, result.execResult), { returnValue: this._targetMessageResult.execResult.returnValue, logs: logs }) });
+                        return [3 /*break*/, 18];
+                    case 17:
+                        targetAddress = message.originalTargetAddress
+                            ? buffer_utils_1.toHexString(message.originalTargetAddress)
+                            : 'CONTRACT CREATION';
+                        slogger.log("ERROR: Execution failed to reach target address: " + targetAddress);
+                        if (!err) {
+                            throw new Error("Execution failed to reach target address: " + targetAddress);
+                        }
+                        _b.label = 18;
+                    case 18:
                         slogger.close();
                         return [2 /*return*/, result];
                 }
@@ -502,6 +516,43 @@ var EVM = /** @class */ (function () {
                     case 1:
                         acc = _a.sent();
                         return [2 /*return*/, this._state.putAccount(address, acc)];
+                }
+            });
+        });
+    };
+    EVM.prototype._makeContractSnapshot = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            var _a, _b;
+            return __generator(this, function (_c) {
+                switch (_c.label) {
+                    case 0:
+                        _a = this;
+                        return [4 /*yield*/, this._vm.pStateManager.getAccount(this._vm._contracts.ExecutionManager.address)];
+                    case 1:
+                        _a._initialEMState = _c.sent();
+                        _b = this;
+                        return [4 /*yield*/, this._vm.pStateManager.getAccount(this._vm._contracts.StateManager.address)];
+                    case 2:
+                        _b._initialSMState = _c.sent();
+                        return [2 /*return*/];
+                }
+            });
+        });
+    };
+    EVM.prototype._resetContractSnapshot = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, this._vm.pStateManager.clearContractStorage(this._vm._contracts.StateManager.address)];
+                    case 1:
+                        _a.sent();
+                        return [4 /*yield*/, this._vm.pStateManager.putAccount(this._vm._contracts.ExecutionManager.address, this._initialEMState)];
+                    case 2:
+                        _a.sent();
+                        return [4 /*yield*/, this._vm.pStateManager.putAccount(this._vm._contracts.StateManager.address, this._initialSMState)];
+                    case 3:
+                        _a.sent();
+                        return [2 /*return*/];
                 }
             });
         });

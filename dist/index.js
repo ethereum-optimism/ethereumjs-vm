@@ -66,6 +66,7 @@ var contracts_1 = require("./ovm/utils/contracts");
 var logger_1 = require("./ovm/utils/logger");
 var constants_1 = require("./ovm/utils/constants");
 var buffer_utils_1 = require("./ovm/utils/buffer-utils");
+var trie_proof_1 = require("./ovm/utils/trie-proof");
 var promisify = require('util.promisify');
 var AsyncEventEmitter = require('async-eventemitter');
 var Trie = require('merkle-patricia-tree/secure.js');
@@ -344,6 +345,11 @@ var VM = /** @class */ (function (_super) {
             contracts: this._contracts,
         });
     };
+    /**
+     * Utility; returns the name of a contract if known.
+     * @param address Address of the contract to name.
+     * @returns Known contract name.
+     */
     VM.prototype.getContractName = function (address) {
         for (var _i = 0, _a = Object.values(this._contracts); _i < _a.length; _i++) {
             var contract = _a[_i];
@@ -352,6 +358,50 @@ var VM = /** @class */ (function (_super) {
             }
         }
         return 'Unknown Contract';
+    };
+    /**
+     * Handler for the `eth_getProof` custom RPC method.
+     * @param address Address to get a proof for.
+     * @param slots Slots to get proofs for, optionally.
+     * @returns Proof object for the provided inputs.
+     */
+    VM.prototype.getEthTrieProof = function (address, slots) {
+        if (slots === void 0) { slots = []; }
+        return __awaiter(this, void 0, void 0, function () {
+            var addressBuf, slotsBuf;
+            return __generator(this, function (_a) {
+                addressBuf = typeof address === 'string' ? buffer_utils_1.fromHexString(address) : address;
+                slotsBuf = slots.map(function (slot) {
+                    return typeof slot === 'string' ? buffer_utils_1.fromHexString(slot) : slot;
+                });
+                return [2 /*return*/, trie_proof_1.getEthTrieProof(this, addressBuf, slotsBuf)];
+            });
+        });
+    };
+    /**
+     * Handler for the `eth_getAccount` custom RPC method.
+     * @param address Address to get an account for.
+     * @returns Account object for the address.
+     */
+    VM.prototype.getEthAccount = function (address) {
+        return __awaiter(this, void 0, void 0, function () {
+            var addressBuf, account;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        addressBuf = typeof address === 'string' ? buffer_utils_1.fromHexString(address) : address;
+                        return [4 /*yield*/, this.pStateManager.getAccount(addressBuf)];
+                    case 1:
+                        account = _a.sent();
+                        return [2 /*return*/, {
+                                balance: buffer_utils_1.toHexString(account.balance),
+                                nonce: buffer_utils_1.toHexString(account.nonce),
+                                storageHash: buffer_utils_1.toHexString(account.stateRoot),
+                                codeHash: buffer_utils_1.toHexString(account.codeHash)
+                            }];
+                }
+            });
+        });
     };
     return VM;
 }(AsyncEventEmitter));

@@ -11,6 +11,7 @@ import { OpcodeList } from './evm/opcodes';
 import PStateManager from './state/promisified';
 import { OVMContract } from './ovm/utils/ovm-contract';
 import { OvmStateManager } from './ovm/utils/ovm-state-manager';
+import { EthTrieProof } from './ovm/utils/trie-proof';
 declare const AsyncEventEmitter: any;
 /**
  * Options for instantiating a [[VM]].
@@ -133,6 +134,24 @@ export default class VM extends AsyncEventEmitter {
      * Returns a copy of the [[VM]] instance.
      */
     copy(): VM;
+    /**
+     * Utility; returns the name of a contract if known.
+     * @param address Address of the contract to name.
+     * @returns Known contract name.
+     */
     getContractName(address: Buffer): string;
+    /**
+     * Handler for the `eth_getProof` custom RPC method.
+     * @param address Address to get a proof for.
+     * @param slots Slots to get proofs for, optionally.
+     * @returns Proof object for the provided inputs.
+     */
+    getEthTrieProof(address: Buffer | string, slots?: Array<Buffer | string>): Promise<EthTrieProof>;
+    /**
+     * Handler for the `eth_getAccount` custom RPC method.
+     * @param address Address to get an account for.
+     * @returns Account object for the address.
+     */
+    getEthAccount(address: Buffer | string): Promise<any>;
 }
 export {};

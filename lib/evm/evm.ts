@@ -105,6 +105,8 @@ export default class EVM {
   _refund: BN
 
   // TODO: Add comments here
+  _initialEMState: Account | undefined
+  _initialSMState: Account | undefined
   _isOvmCall: boolean = false
   _targetMessage: Message | undefined
   _targetMessageResult: EVMResult | undefined
@@ -133,6 +135,7 @@ export default class EVM {
     if (message.isOvmEntryMessage()) {
       message = message.toOvmMessage(this._vm, this._block || new Block())
       this._isOvmCall = true
+      await this._makeContractSnapshot()
     }
 
     // Create a scoped logger for this message, we'll need it.
@@ -199,12 +202,25 @@ export default class EVM {
 
     if (message.isOvmEntryMessage()) {
       if (this._targetMessageResult) {
+        await this._resetContractSnapshot()
+
+        let logs: any[] = []
+        if (this._targetMessageResult.execResult.logs) {
+          logs = this._targetMessageResult.execResult.logs.map(log => {
+            log[0] =
+              (this._targetMessage as Message).to ||
+              (this._targetMessageResult as EVMResult).createdAddress
+            return log
+          })
+        }
+
         result = {
           ...result,
           createdAddress: this._targetMessageResult.createdAddress,
           execResult: {
             ...result.execResult,
             returnValue: this._targetMessageResult.execResult.returnValue,
+            logs: logs,
           },
         }
       } else {
@@ -488,5 +504,28 @@ export default class EVM {
   async _touchAccount(address: Buffer): Promise<void> {
     const acc = await this._state.getAccount(address)
     return this._state.putAccount(address, acc)
+  }
+
+  async _makeContractSnapshot(): Promise<void> {
+    this._initialEMState = await this._vm.pStateManager.getAccount(
+      this._vm._contracts.ExecutionManager.address,
+    )
+    this._initialSMState = await this._vm.pStateManager.getAccount(
+      this._vm._contracts.StateManager.address,
+    )
+  }
+
+  async _resetContractSnapshot(): Promise<void> {
+    await this._vm.pStateManager.clearContractStorage(this._vm._contracts.StateManager.address)
+
+    await this._vm.pStateManager.putAccount(
+      this._vm._contracts.ExecutionManager.address,
+      this._initialEMState,
+    )
+
+    await this._vm.pStateManager.putAccount(
+      this._vm._contracts.StateManager.address,
+      this._initialSMState,
+    )
   }
 }

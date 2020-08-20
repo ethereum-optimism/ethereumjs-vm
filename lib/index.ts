@@ -16,7 +16,8 @@ import { OvmStateManager } from './ovm/utils/ovm-state-manager'
 import { makeOvmContract } from './ovm/utils/contracts'
 import { Logger } from './ovm/utils/logger'
 import { NULL_ADDRESS } from './ovm/utils/constants'
-import { toHexString } from './ovm/utils/buffer-utils'
+import { toHexString, fromHexString } from './ovm/utils/buffer-utils'
+import { EthTrieProof, getEthTrieProof } from './ovm/utils/trie-proof'
 const promisify = require('util.promisify')
 const AsyncEventEmitter = require('async-eventemitter')
 const Trie = require('merkle-patricia-tree/secure.js')
@@ -319,6 +320,11 @@ export default class VM extends AsyncEventEmitter {
     })
   }
 
+  /**
+   * Utility; returns the name of a contract if known.
+   * @param address Address of the contract to name.
+   * @returns Known contract name.
+   */
   getContractName(address: Buffer): string {
     for (const contract of Object.values(this._contracts)) {
       if (contract.address && toHexString(address) === contract.addressHex) {
@@ -327,5 +333,42 @@ export default class VM extends AsyncEventEmitter {
     }
 
     return 'Unknown Contract'
+  }
+
+  /**
+   * Handler for the `eth_getProof` custom RPC method.
+   * @param address Address to get a proof for.
+   * @param slots Slots to get proofs for, optionally.
+   * @returns Proof object for the provided inputs.
+   */
+  async getEthTrieProof(
+    address: Buffer | string,
+    slots: Array<Buffer | string> = [],
+  ): Promise<EthTrieProof> {
+    const addressBuf = typeof address === 'string' ? fromHexString(address) : address
+    const slotsBuf: Buffer[] = slots.map(
+      (slot): Buffer => {
+        return typeof slot === 'string' ? fromHexString(slot) : slot
+      },
+    )
+
+    return getEthTrieProof(this, addressBuf, slotsBuf)
+  }
+
+  /**
+   * Handler for the `eth_getAccount` custom RPC method.
+   * @param address Address to get an account for.
+   * @returns Account object for the address.
+   */
+  async getEthAccount(address: Buffer | string): Promise<any> {
+    const addressBuf = typeof address === 'string' ? fromHexString(address) : address
+    const account = await this.pStateManager.getAccount(addressBuf)
+
+    return {
+      balance: toHexString(account.balance),
+      nonce: toHexString(account.nonce),
+      storageHash: toHexString(account.stateRoot),
+      codeHash: toHexString(account.codeHash),
+    }
   }
 }

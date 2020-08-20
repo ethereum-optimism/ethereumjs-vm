@@ -26,6 +26,7 @@ export default class PStateManager {
     readonly generateGenesis: (initState: any) => Promise<void>;
     readonly accountIsEmpty: (address: Buffer) => Promise<boolean>;
     readonly cleanupTouchedAccounts: () => Promise<void>;
+    readonly _getStorageTrie: (address: Buffer) => Promise<any>;
     constructor(wrapped: StateManager);
     copy(): PStateManager;
 }

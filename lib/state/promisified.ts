@@ -28,6 +28,7 @@ export default class PStateManager {
   public readonly generateGenesis: (initState: any) => Promise<void>
   public readonly accountIsEmpty: (address: Buffer) => Promise<boolean>
   public readonly cleanupTouchedAccounts: () => Promise<void>
+  public readonly _getStorageTrie: (address: Buffer) => Promise<any>
 
   constructor(wrapped: StateManager) {
     this._wrapped = wrapped
@@ -77,6 +78,8 @@ export default class PStateManager {
     this.cleanupTouchedAccounts = promisify(
       this._wrapped.cleanupTouchedAccounts.bind(this._wrapped),
     )
+
+    this._getStorageTrie = promisify(this._wrapped._getStorageTrie.bind(this._wrapped))
   }
 
   copy(): PStateManager {

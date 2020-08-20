@@ -29,6 +29,7 @@ var PStateManager = /** @class */ (function () {
         this.generateGenesis = promisify(this._wrapped.generateGenesis.bind(this._wrapped));
         this.accountIsEmpty = promisify(this._wrapped.accountIsEmpty.bind(this._wrapped));
         this.cleanupTouchedAccounts = promisify(this._wrapped.cleanupTouchedAccounts.bind(this._wrapped));
+        this._getStorageTrie = promisify(this._wrapped._getStorageTrie.bind(this._wrapped));
     }
     PStateManager.prototype.copy = function () {
         return new PStateManager(this._wrapped.copy());
