@@ -397,7 +397,7 @@ var VM = /** @class */ (function (_super) {
                                 balance: buffer_utils_1.toHexString(account.balance),
                                 nonce: buffer_utils_1.toHexString(account.nonce),
                                 storageHash: buffer_utils_1.toHexString(account.stateRoot),
-                                codeHash: buffer_utils_1.toHexString(account.codeHash)
+                                codeHash: buffer_utils_1.toHexString(account.codeHash),
                             }];
                 }
             });

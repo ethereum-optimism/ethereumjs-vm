@@ -105,8 +105,12 @@ var EVM = /** @class */ (function () {
                         if (!message.isOvmEntryMessage()) return [3 /*break*/, 4];
                         message = message.toOvmMessage(this._vm, this._block || new Block());
                         this._isOvmCall = true;
+                        // We snapshot the ExecutionManager and StateManager contracts and reset
+                        // them later so their state doesn't influence the state trie.
                         return [4 /*yield*/, this._makeContractSnapshot()];
                     case 3:
+                        // We snapshot the ExecutionManager and StateManager contracts and reset
+                        // them later so their state doesn't influence the state trie.
                         _b.sent();
                         _b.label = 4;
                     case 4:
@@ -128,11 +132,15 @@ var EVM = /** @class */ (function () {
                         }
                         targetContract = this._vm.getContractName(message.to);
                         slogger.log("Processing a message call to: " + buffer_utils_1.toHexString(message.to) + " (" + targetContract + ")");
+                        // Just some basic logging here.
                         if (targetContract === 'ExecutionManager') {
                             _a = this._vm._contracts.ExecutionManager.decodeFunctionData(message.data), functionName = _a.functionName, functionArgs = _a.functionArgs;
                             slogger.log("Calling ExecutionManager function " + functionName + " with arguments " + functionArgs);
                         }
-                        return [4 /*yield*/, this._executeCall(message)];
+                        return [4 /*yield*/, this._executeCall(message)
+                            // We need to hook into calls to the StateManager so that we manipulate
+                            // the VM's state manager, not just the contract.
+                        ];
                     case 5:
                         result = _b.sent();
                         if (!(targetContract === 'StateManager')) return [3 /*break*/, 7];
@@ -161,24 +169,38 @@ var EVM = /** @class */ (function () {
                     case 13:
                         _b.sent();
                         _b.label = 14;
-                    case 14: return [4 /*yield*/, this._vm._emit('afterMessage', result)];
+                    case 14: return [4 /*yield*/, this._vm._emit('afterMessage', result)
+                        // Store the result of executing our target message for later.
+                    ];
                     case 15:
                         _b.sent();
+                        // Store the result of executing our target message for later.
                         if (isTargetMessage) {
                             this._targetMessageResult = result;
                         }
                         if (!message.isOvmEntryMessage()) return [3 /*break*/, 18];
                         if (!this._targetMessageResult) return [3 /*break*/, 17];
-                        return [4 /*yield*/, this._resetContractSnapshot()];
+                        // Reset the state of our ExecutionManager and StateManager contracts
+                        // so that they don't influence the state trie.
+                        return [4 /*yield*/, this._resetContractSnapshot()
+                            // Address attached to any logs will be the ExecutionManager by default.
+                            // We need to replace these addresses with the target address so
+                            // clients can properly detect and decode them.
+                        ];
                     case 16:
+                        // Reset the state of our ExecutionManager and StateManager contracts
+                        // so that they don't influence the state trie.
                         _b.sent();
                         logs = [];
                         if (this._targetMessageResult.execResult.logs) {
                             logs = this._targetMessageResult.execResult.logs.map(function (log) {
-                                log[0] = _this._targetMessage.to || _this._targetMessageResult.createdAddress;
+                                log[0] =
+                                    _this._targetMessage.to ||
+                                        _this._targetMessageResult.createdAddress;
                                 return log;
                             });
                         }
+                        // Attach the corrected values to our result.
                         result = __assign(__assign({}, result), { createdAddress: this._targetMessageResult.createdAddress, execResult: __assign(__assign({}, result.execResult), { returnValue: this._targetMessageResult.execResult.returnValue, logs: logs }) });
                         return [3 /*break*/, 18];
                     case 17:
@@ -466,6 +488,10 @@ var EVM = /** @class */ (function () {
                         _b = buffer_utils_1.toHexAddress;
                         return [4 /*yield*/, this._vm.pStateManager.getContractStorage(this._vm._contracts.ExecutionManager.address, Buffer.from('00'.repeat(31) + '05', 'hex'))];
                     case 1:
+                        // We're inside an OVM call, so we need to deploy to the address defined
+                        // within the ExecutionManager's execution context. We retrieve this
+                        // address by directly querying the state trie (as opposed to sending a
+                        // contract call transaction) as to not modify the trie.
                         addr = _a.apply(void 0, [_b.apply(void 0, [_c.sent()])]);
                         return [3 /*break*/, 5];
                     case 2:

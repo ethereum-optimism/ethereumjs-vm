@@ -1,5 +1,5 @@
 {
-  "name": "ethereumjs-vm",
+  "name": "ethereumjs-ovm",
   "version": "4.2.0",
   "description": "An Ethereum VM implementation",
   "main": "dist/index.js",

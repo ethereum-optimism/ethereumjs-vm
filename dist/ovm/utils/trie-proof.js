@@ -158,7 +158,7 @@ exports.getEthTrieProof = function (vm, address, slots) {
                         value: buffer_utils_1.toHexString(value),
                         proof: proof.map(function (el) {
                             return buffer_utils_1.toHexString(el);
-                        })
+                        }),
                     });
                     _a.label = 7;
                 case 7:
