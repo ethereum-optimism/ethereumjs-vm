@@ -122,6 +122,7 @@ export default class Interpreter {
     if (opInfo.name === 'INVALID') {
       throw new VmError(ERROR.INVALID_OPCODE)
     }
+    console.log(opInfo.name, this._eei.getGasLeft().toString())
 
     // Reduce opcode's base fee
     this._eei.useGas(new BN(opInfo.fee))
