@@ -9,6 +9,7 @@ import EEI from './eei'
 import { Opcode } from './opcodes'
 import { handlers as opHandlers, OpHandler } from './opFns'
 import Account from 'ethereumjs-account'
+import { env } from 'process'
 
 export interface InterpreterOpts {
   pc?: number
@@ -46,6 +47,8 @@ export interface InterpreterStep {
   account: Account
   codeAddress: Buffer
 }
+
+let printNextMem = false
 
 /**
  * Parses and executes EVM bytecode.
@@ -122,7 +125,6 @@ export default class Interpreter {
     if (opInfo.name === 'INVALID') {
       throw new VmError(ERROR.INVALID_OPCODE)
     }
-    console.log(opInfo.name, this._eei.getGasLeft().toString())
 
     // Reduce opcode's base fee
     this._eei.useGas(new BN(opInfo.fee))
@@ -190,6 +192,9 @@ export default class Interpreter {
       memoryWordCount: this._runState.memoryWordCount,
       codeAddress: this._eei._env.codeAddress,
     }
+
+    if (env.DEBUG_OVM === 'true') this.logStep(eventObj)
+
     /**
      * The `step` event for trace output
      *
@@ -207,6 +212,41 @@ export default class Interpreter {
      * @property {StateManager} stateManager a [`StateManager`](stateManager.md) instance (Beta API)
      */
     return this._vm._emit('step', eventObj)
+  }
+
+  logStep(info: InterpreterStep) {
+    const name = info.opcode.name
+
+    // Optimism Stack logging
+    const curMemory = info['memory']
+    let memToPrint
+    if (
+      ['CALL', 'CREATE', 'CREATE2', 'STATICCALL', 'RETURN', 'REVERT', 'DELEGATECALL'].includes(
+        info.opcode.name,
+      ) ||
+      printNextMem
+    ) {
+      memToPrint = `[${'0x' + Buffer.from(curMemory).toString('hex')}]`
+      printNextMem = false
+    } else if (['MSTORE', 'CALLDATACOPY', 'RETUNDATACOPY', 'CODECOPY'].includes(info.opcode.name)) {
+      printNextMem = true
+    } else {
+      memToPrint = '[suppressed]'
+    }
+
+    console.log(
+      `\nopcode: ${name},{pc: 0x${info['pc'].toString(16)}, stackDepth: ${
+        info['stack'].length
+      }, \nstack: [${info['stack']
+        .map(x => x.toBuffer())
+        .reverse()
+        .map(x => {
+          return '0x' + x.toString('hex')
+        })}], memoryWordCount: ${info[
+        'memoryWordCount'
+      ].toNumber()}, \n      memory: ${memToPrint}, \n      address: ${'0x' +
+        info['address'].toString('hex')}`,
+    )
   }
 
   // Returns all valid jump destinations.

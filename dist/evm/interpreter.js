@@ -52,6 +52,8 @@ var exceptions_1 = require("../exceptions");
 var memory_1 = require("./memory");
 var stack_1 = require("./stack");
 var opFns_1 = require("./opFns");
+var process_1 = require("process");
+var printNextMem = false;
 /**
  * Parses and executes EVM bytecode.
  */
@@ -203,6 +205,8 @@ var Interpreter = /** @class */ (function () {
                     memoryWordCount: this._runState.memoryWordCount,
                     codeAddress: this._eei._env.codeAddress,
                 };
+                if (process_1.env.DEBUG_OVM === 'true')
+                    this.logStep(eventObj);
                 /**
                  * The `step` event for trace output
                  *
@@ -222,6 +226,30 @@ var Interpreter = /** @class */ (function () {
                 return [2 /*return*/, this._vm._emit('step', eventObj)];
             });
         });
+    };
+    Interpreter.prototype.logStep = function (info) {
+        var name = info.opcode.name;
+        // Optimism Stack logging
+        var curMemory = info['memory'];
+        var memToPrint;
+        if (['CALL', 'CREATE', 'CREATE2', 'STATICCALL', 'RETURN', 'REVERT', 'DELEGATECALL'].includes(info.opcode.name) ||
+            printNextMem) {
+            memToPrint = "[" + ('0x' + Buffer.from(curMemory).toString('hex')) + "]";
+            printNextMem = false;
+        }
+        else if (['MSTORE', 'CALLDATACOPY', 'RETUNDATACOPY', 'CODECOPY'].includes(info.opcode.name)) {
+            printNextMem = true;
+        }
+        else {
+            memToPrint = '[suppressed]';
+        }
+        console.log("\nopcode: " + name + ",{pc: 0x" + info['pc'].toString(16) + ", stackDepth: " + info['stack'].length + ", \nstack: [" + info['stack']
+            .map(function (x) { return x.toBuffer(); })
+            .reverse()
+            .map(function (x) {
+            return '0x' + x.toString('hex');
+        }) + "], memoryWordCount: " + info['memoryWordCount'].toNumber() + ", \n      memory: " + memToPrint + ", \n      address: " + ('0x' +
+            info['address'].toString('hex')));
     };
     // Returns all valid jump destinations.
     Interpreter.prototype._getValidJumpDests = function (code) {

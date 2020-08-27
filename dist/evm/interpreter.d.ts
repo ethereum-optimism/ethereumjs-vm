@@ -67,5 +67,6 @@ export default class Interpreter {
      */
     lookupOpInfo(op: number, full?: boolean): Opcode;
     _runStepHook(): Promise<void>;
+    logStep(info: InterpreterStep): void;
     _getValidJumpDests(code: Buffer): number[];
 }
