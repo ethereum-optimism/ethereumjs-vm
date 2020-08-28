@@ -169,17 +169,13 @@ var EVM = /** @class */ (function () {
                     case 13:
                         _b.sent();
                         _b.label = 14;
-                    case 14: return [4 /*yield*/, this._vm._emit('afterMessage', result)
-                        // Store the result of executing our target message for later.
-                    ];
-                    case 15:
-                        _b.sent();
+                    case 14:
                         // Store the result of executing our target message for later.
                         if (isTargetMessage) {
                             this._targetMessageResult = result;
                         }
-                        if (!message.isOvmEntryMessage()) return [3 /*break*/, 18];
-                        if (!this._targetMessageResult) return [3 /*break*/, 17];
+                        if (!message.isOvmEntryMessage()) return [3 /*break*/, 17];
+                        if (!this._targetMessageResult) return [3 /*break*/, 16];
                         // Reset the state of our ExecutionManager and StateManager contracts
                         // so that they don't influence the state trie.
                         return [4 /*yield*/, this._resetContractSnapshot()
@@ -187,32 +183,36 @@ var EVM = /** @class */ (function () {
                             // We need to replace these addresses with the target address so
                             // clients can properly detect and decode them.
                         ];
-                    case 16:
+                    case 15:
                         // Reset the state of our ExecutionManager and StateManager contracts
                         // so that they don't influence the state trie.
                         _b.sent();
                         logs = [];
                         if (this._targetMessageResult.execResult.logs) {
-                            logs = this._targetMessageResult.execResult.logs.map(function (log) {
-                                log[0] =
-                                    _this._targetMessage.to ||
-                                        _this._targetMessageResult.createdAddress;
-                                return log;
+                            /*
+                            logs = this._targetMessageResult.execResult.logs.map(log => {
+                              log[0] =
+                                (this._targetMessage as Message).to ||
+                                (this._targetMessageResult as EVMResult).createdAddress
+                              return log
+                            })
+                            */
+                            logs = this._targetMessageResult.execResult.logs.filter(function (log) {
+                                return !(log[0].equals(_this._vm._contracts.ExecutionManager.address));
                             });
                         }
                         // Attach the corrected values to our result.
-                        result = __assign(__assign({}, result), { createdAddress: this._targetMessageResult.createdAddress, execResult: __assign(__assign({}, result.execResult), { returnValue: this._targetMessageResult.execResult.returnValue, logs: logs }) });
-                        return [3 /*break*/, 18];
-                    case 17:
+                        result = __assign(__assign({}, result), { createdAddress: this._targetMessageResult.createdAddress, execResult: __assign(__assign({}, result.execResult), { returnValue: this._targetMessageResult.execResult.returnValue, exceptionError: this._targetMessageResult.execResult.exceptionError, logs: logs }) });
+                        return [3 /*break*/, 17];
+                    case 16:
                         targetAddress = message.originalTargetAddress
                             ? buffer_utils_1.toHexString(message.originalTargetAddress)
                             : 'CONTRACT CREATION';
                         slogger.log("ERROR: Execution failed to reach target address: " + targetAddress);
-                        if (!err) {
-                            throw new Error("Execution failed to reach target address: " + targetAddress);
-                        }
-                        _b.label = 18;
+                        _b.label = 17;
+                    case 17: return [4 /*yield*/, this._vm._emit('afterMessage', result)];
                     case 18:
+                        _b.sent();
                         slogger.close();
                         return [2 /*return*/, result];
                 }
