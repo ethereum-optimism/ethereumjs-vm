@@ -219,8 +219,8 @@ export default class EVM {
         // Need to remove ExecutionManager logs.
         let logs: any[] = []
         if (this._targetMessageResult.execResult.logs) {
-          logs = this._targetMessageResult.execResult.logs.filter((log) => {
-            return !(log[0].equals(this._vm._contracts.ExecutionManager.address))
+          logs = this._targetMessageResult.execResult.logs.filter(log => {
+            return !log[0].equals(this._vm._contracts.ExecutionManager.address)
           })
         }
 

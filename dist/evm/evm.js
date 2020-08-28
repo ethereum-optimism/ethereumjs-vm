@@ -179,9 +179,7 @@ var EVM = /** @class */ (function () {
                         // Reset the state of our ExecutionManager and StateManager contracts
                         // so that they don't influence the state trie.
                         return [4 /*yield*/, this._resetContractSnapshot()
-                            // Address attached to any logs will be the ExecutionManager by default.
-                            // We need to replace these addresses with the target address so
-                            // clients can properly detect and decode them.
+                            // Need to remove ExecutionManager logs.
                         ];
                     case 15:
                         // Reset the state of our ExecutionManager and StateManager contracts
@@ -189,14 +187,6 @@ var EVM = /** @class */ (function () {
                         _b.sent();
                         logs = [];
                         if (this._targetMessageResult.execResult.logs) {
-                            /*
-                            logs = this._targetMessageResult.execResult.logs.map(log => {
-                              log[0] =
-                                (this._targetMessage as Message).to ||
-                                (this._targetMessageResult as EVMResult).createdAddress
-                              return log
-                            })
-                            */
                             logs = this._targetMessageResult.execResult.logs.filter(function (log) {
                                 return !(log[0].equals(_this._vm._contracts.ExecutionManager.address));
                             });
