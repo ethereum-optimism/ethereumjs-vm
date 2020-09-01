@@ -14,9 +14,13 @@ export class Logger {
     this._debugger(message)
   }
 
-  scope(namespace: string, section?: string): ScopedLogger {
-    const id = uuidv4()
+  scope(namespace: string, section?: string, id?: string): ScopedLogger {
+    id = id || uuidv4()
     return new ScopedLogger(`${this._namespace}:${namespace}:${id}`, section)
+  }
+
+  getNamespace(): string {
+    return this._namespace
   }
 }
 
@@ -32,17 +36,13 @@ export class ScopedLogger extends Logger {
   open(): void {
     const sectionStartMessage = `BEGIN: ${this._section}`
 
-    this.log(`\n\n`)
     this._logSection(sectionStartMessage)
-    this.log(`\n`)
   }
 
   close(): void {
     const sectionEndMessage = `END: ${this._section}`
 
-    this.log(`\n`)
     this._logSection(sectionEndMessage)
-    this.log(`\n\n`)
   }
 
   private _logSection(message: string): void {
@@ -51,3 +51,5 @@ export class ScopedLogger extends Logger {
     this.log(`------${'-'.repeat(message.length)}------`)
   }
 }
+
+

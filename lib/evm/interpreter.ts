@@ -6,10 +6,14 @@ import { ERROR, VmError } from '../exceptions'
 import Memory from './memory'
 import Stack from './stack'
 import EEI from './eei'
+import { Logger, ScopedLogger } from '../ovm/utils/logger'
 import { Opcode } from './opcodes'
 import { handlers as opHandlers, OpHandler } from './opFns'
 import Account from 'ethereumjs-account'
-import { env } from 'process'
+import { env, off } from 'process'
+import { add } from 'lodash'
+
+const logger = new Logger('ethjs-ovm')
 
 export interface InterpreterOpts {
   pc?: number
@@ -50,6 +54,10 @@ export interface InterpreterStep {
 
 let printNextMem = false
 
+const padToLengthIfPossible = (str: string, len: number):string => {
+  return str.length > len ? str : str + ' '.repeat(len - str.length)
+}
+
 /**
  * Parses and executes EVM bytecode.
  */
@@ -58,6 +66,7 @@ export default class Interpreter {
   _state: PStateManager
   _runState: RunState
   _eei: EEI
+  _executionLoggers: Map<number, {callLogger: ScopedLogger, stepLogger: Logger, memLogger: Logger}>
 
   constructor(vm: any, eei: EEI) {
     this._vm = vm // TODO: remove when not needed
@@ -77,6 +86,7 @@ export default class Interpreter {
       stateManager: this._state._wrapped,
       eei: this._eei,
     }
+    this._executionLoggers = new Map<number, {callLogger: ScopedLogger, stepLogger: Logger, memLogger: Logger}>()
   }
 
   async run(code: Buffer, opts: InterpreterOpts = {}): Promise<InterpreterResult> {
@@ -107,6 +117,10 @@ export default class Interpreter {
         // TODO: Throw on non-VmError exceptions
         break
       }
+    }
+
+    for (const [depth, {callLogger, stepLogger}] of this._executionLoggers.entries()) {
+      callLogger.close()
     }
 
     return {
@@ -193,7 +207,13 @@ export default class Interpreter {
       codeAddress: this._eei._env.codeAddress,
     }
 
-    if (env.DEBUG_OVM === 'true') this.logStep(eventObj)
+    if (env.DEBUG_OVM === 'true') {
+      try {
+        this.logStep(eventObj)
+      } catch(e) {
+        logger.log(`Caught error logging VM step: ${JSON.stringify(e)}`)
+      }
+    }
 
     /**
      * The `step` event for trace output
@@ -213,41 +233,122 @@ export default class Interpreter {
      */
     return this._vm._emit('step', eventObj)
   }
-
+  
   logStep(info: InterpreterStep) {
-    const name = info.opcode.name
+    if (!this._eei._env.isOvmCall) { return }
 
-    // Optimism Stack logging
-    const curMemory = info['memory']
-    let memToPrint
-    if (
-      ['CALL', 'CREATE', 'CREATE2', 'STATICCALL', 'RETURN', 'REVERT', 'DELEGATECALL'].includes(
-        info.opcode.name,
-      ) ||
-      printNextMem
-    ) {
-      memToPrint = `[${'0x' + Buffer.from(curMemory).toString('hex')}]`
-      printNextMem = false
-    } else if (['MSTORE', 'CALLDATACOPY', 'RETUNDATACOPY', 'CODECOPY'].includes(info.opcode.name)) {
-      printNextMem = true
-    } else {
-      memToPrint = '[suppressed]'
+    const opName = info.opcode.name
+
+    const curAddress = info['address'].toString('hex')
+    const curDepth = info['depth']
+
+    let scope = curAddress.slice(0, 8) + '..:d' + info['depth']
+    if (!this._executionLoggers.has(curDepth)) {
+      let addrName = curAddress
+      for (const ovmContract of Object.keys(this._vm._contracts)) {
+        if (!!this._vm._contracts[ovmContract].address) {
+          if (curAddress == (this._vm._contracts[ovmContract].address.toString('hex'))) {
+            addrName = ovmContract
+            scope = new Map<string, string>([
+              ['AddressResolver', 'addr-rslvr'],
+              ['StateManager', 'state-mgr'],
+              ['SafetyChecker', 'safety-chkr'],
+              ['ExecutionManager', 'exe-mgr']
+            ]).get(ovmContract) || ovmContract
+          }
+        }
+      }
+      const descriptionStart = curDepth === 0 ? 'OVM TX. starts with ' : 'EVM STEPS for '
+      const callLogger = logger.scope('evm', descriptionStart + addrName + ' at depth ' + curDepth,  scope)
+      const stepLogger = new Logger(callLogger.getNamespace() + ':steps')
+      const memLogger = new Logger(callLogger.getNamespace() + ':memory')
+      callLogger.open()
+      this._executionLoggers.set(
+        curDepth,
+        {callLogger, stepLogger, memLogger}
+      )
     }
 
-    console.log(
-      `\nopcode: ${name},{pc: 0x${info['pc'].toString(16)}, stackDepth: ${
-        info['stack'].length
-      }, \nstack: [${info['stack']
-        .map(x => x.toBuffer())
-        .reverse()
-        .map(x => {
-          return '0x' + x.toString('hex')
-        })}], memoryWordCount: ${info[
-        'memoryWordCount'
-      ].toNumber()}, \n      memory: ${memToPrint}, \n      address: ${'0x' +
-        info['address'].toString('hex')}`,
+    let callLogger
+    let stepLogger
+    let memLogger
+    const loggers = this._executionLoggers.get(curDepth)
+    if (!!loggers) {
+      callLogger = loggers.callLogger
+      stepLogger = loggers.stepLogger
+      memLogger = loggers.memLogger
+    }
+    if (callLogger === undefined || stepLogger === undefined || memLogger === undefined) {return}
+
+    const curMemory = info['memory']
+
+    let stack
+
+    if (['RETURN', 'REVERT'].includes(opName)) {
+      stack = new Array(...info['stack']).reverse()
+      const offset = stack[0]
+      const length = stack[1]
+      const returnOrRevertData = Buffer.from(curMemory.slice(offset.toNumber(), offset.toNumber()+length.toNumber()))
+      callLogger.log(opName + ' with data: 0x' + returnOrRevertData.toString('hex'))
+      callLogger.close()
+      this._executionLoggers.delete(curDepth)
+      return
+    }
+
+    if (opName == 'CALL') {
+      stack = new Array(...info['stack']).reverse()
+      const target = stack[1].toBuffer()
+      const argsOffset = stack[3]
+      const argsLength = stack[4]
+      const calldata = Buffer.from(curMemory.slice(argsOffset.toNumber(), argsOffset.toNumber()+argsLength.toNumber()))
+      if (!!this._vm._contracts.ExecutionManager.address) {
+        if (target.equals(this._vm._contracts.ExecutionManager.address)) {
+          const {
+            functionName,
+            functionArgs,
+          } = this._vm._contracts.ExecutionManager.decodeFunctionData(calldata)
+          callLogger.log(
+            `CALL to ExecutionManager.${functionName} with: ${functionArgs} (raw w/o sighash): 0x${calldata.slice(4).toString('hex')})`,
+          )
+        } else {
+          callLogger.log(`CALL to ${target.toString('hex')} with data: \n0x${calldata.toString('hex')}`)
+        }
+      }
+      return
+    }
+
+    const printThisMem: boolean = ['CALL', 'CREATE', 'CREATE2', 'STATICCALL', 'DELEGATECALL'].includes(
+      opName,
+    ) || printNextMem
+    printNextMem = false
+      
+    if (['MSTORE', 'CALLDATACOPY', 'RETUNDATACOPY', 'CODECOPY'].includes(opName)) {
+      printNextMem = true
+    }
+
+    if (stack === undefined) {
+      stack = new Array(...info['stack']).reverse()
+    }    
+
+    stepLogger.log(
+      `op:${
+        padToLengthIfPossible(opName, 9)
+      }stack:[  ${
+        stack.map((stackEl) => {
+            return '0x' + stackEl.toString("hex")
+          }
+        )
+        }], pc:0x${
+          info['pc'].toString(6)
+        }`,
     )
+
+    if (printThisMem) {
+      memLogger.log(`[${'0x' + Buffer.from(curMemory).toString('hex')}]`)
+    }
   }
+
+  
 
   // Returns all valid jump destinations.
   _getValidJumpDests(code: Buffer): number[] {
