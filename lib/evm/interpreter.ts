@@ -242,7 +242,7 @@ export default class Interpreter {
     const curAddress = info['address'].toString('hex')
     const curDepth = info['depth']
 
-    let scope = curAddress.slice(0, 8) + '..:d' + info['depth']
+    let scope = curAddress.slice(0, 8) + '...:d' + info['depth']
     if (!this._executionLoggers.has(curDepth)) {
       let addrName = curAddress
       for (const ovmContract of Object.keys(this._vm._contracts)) {

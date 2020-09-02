@@ -293,7 +293,7 @@ var Interpreter = /** @class */ (function () {
         var opName = info.opcode.name;
         var curAddress = info['address'].toString('hex');
         var curDepth = info['depth'];
-        var scope = curAddress.slice(0, 8) + '..:d' + info['depth'];
+        var scope = curAddress.slice(0, 8) + '...:d' + info['depth'];
         if (!this._executionLoggers.has(curDepth)) {
             var addrName = curAddress;
             try {
