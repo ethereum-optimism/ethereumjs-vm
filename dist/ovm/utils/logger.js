@@ -24,9 +24,12 @@ var Logger = /** @class */ (function () {
     Logger.prototype.log = function (message) {
         this._debugger(message);
     };
-    Logger.prototype.scope = function (namespace, section) {
-        var id = uuid_1.v4();
+    Logger.prototype.scope = function (namespace, section, id) {
+        id = id || uuid_1.v4();
         return new ScopedLogger(this._namespace + ":" + namespace + ":" + id, section);
+    };
+    Logger.prototype.getNamespace = function () {
+        return this._namespace;
     };
     return Logger;
 }());
@@ -40,15 +43,11 @@ var ScopedLogger = /** @class */ (function (_super) {
     }
     ScopedLogger.prototype.open = function () {
         var sectionStartMessage = "BEGIN: " + this._section;
-        this.log("\n\n");
         this._logSection(sectionStartMessage);
-        this.log("\n");
     };
     ScopedLogger.prototype.close = function () {
         var sectionEndMessage = "END: " + this._section;
-        this.log("\n");
         this._logSection(sectionEndMessage);
-        this.log("\n\n");
     };
     ScopedLogger.prototype._logSection = function (message) {
         this.log("------" + '-'.repeat(message.length) + "------");

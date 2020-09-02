@@ -7,55 +7,33 @@
 
 [![js-standard-style](https://cdn.rawgit.com/feross/standard/master/badge.svg)](https://github.com/feross/standard)
 
-Implements Ethereum's VM in Javascript.
+Implements Optimism's OVM in Javascript. Forked with <3 from `ethereumjs-vm`!
 
-#### Fork Support
+# Logging
 
-The VM currently supports the following hardfork rules:
+This fork provides some custom logging tools for introspecting the OVM. Particularly, the environment variable `DEBUG_OVM=true` will allow you to log various degrees of internal EVM execution such as calls, stack, and memory.
 
-- `Byzantium`
-- `Constantinople`
-- `Petersburg` (default)
-- `Istanbul`
-- `MuirGlacier` (only `mainnet` and `ropsten`)
+## Namespaces
 
-If you are still looking for a [Spurious Dragon](https://eips.ethereum.org/EIPS/eip-607) compatible version of this library install the latest of the `2.2.x` series (see [Changelog](./CHANGELOG.md)).
+The logger uses npm `debug` package, and prints EVM steps according to the following format:
 
-##### MuirGlacier Hardfork Support
+- `ethjs-ovm:evm:<addr>...:d<DEPTH>` for `CALL`s, `REVERT`s, and `RETURN`s
+- `ethjs-ovm:evm:<addr>...:d<DEPTH>:steps` for individual EVM steps (opcodes and stack)
+- `ethjs-ovm:evm:<addr>...:d<DEPTH>:memory` for memory (only logs on steps where memory is updated)
 
-An Ethereum test suite compliant `MuirGlacier` HF implementation is available
-since the `v4.1.3` VM release. You can activate a `MuirGlacier` VM by using the
-`muirGlacier` `hardfork` option flag.
+Where:
 
-**Note:** The original `v4.1.2` release contains a critical bug preventing the
-`MuirGlacier` VM to work properly and there is the need to update.
+- `<addr>` is either:
+  - The first four bytes of the code contract address, or
+  - `exe-mgr`, `state-mgr`, `addr-rslvr`, or `safety-chkr`, if the steps correspond to OVM container execution.
+- `<DEPTH>` is the current EVM call depth of the transaction.
 
-##### Istanbul Harfork Support
+## Usage
 
-An Ethereum test suite compliant `Istanbul` HF implementation is available
-since the `v4.1.1` VM release. You can activate an `Istanbul` VM by using the
-`istanbul` `hardfork` option flag.
+`debug` can filter these namespaces to suit your loggin needs. The most common two patterns are:
 
-Supported `Istanbul` EIPs:
-
-- [EIP-152](https://eips.ethereum.org/EIPS/eip-152): Blake 2b `F` precompile,
-  PR [#584](https://github.com/ethereumjs/ethereumjs-vm/pull/584)
-- [EIP-1108](https://eips.ethereum.org/EIPS/eip-1108): Reduce `alt_bn128`
-  precompile gas costs,  
-  PR [#540](https://github.com/ethereumjs/ethereumjs-vm/pull/540)
-  (already released in `v4.0.0`)
-- [EIP-1344](https://eips.ethereum.org/EIPS/eip-1344): Add ChainID Opcode,
-  PR [#572](https://github.com/ethereumjs/ethereumjs-vm/pull/572)
-- [EIP-1884](https://eips.ethereum.org/EIPS/eip-1884): Trie-size-dependent
-  Opcode Repricing,
-  PR [#581](https://github.com/ethereumjs/ethereumjs-vm/pull/581)
-- [EIP-2200](https://eips.ethereum.org/EIPS/eip-2200): Rebalance net-metered
-  SSTORE gas costs,
-  PR [#590](https://github.com/ethereumjs/ethereumjs-vm/pull/590)
-
-# INSTALL
-
-`npm install ethereumjs-vm`
+- One where all code contract opcodes are logged, but only `CALL`s and `RETURN` data is logged for container contracts: `export DEBUG="ethjs-ovm:evm*,-ethjs-ovm:evm:*:memory,-*exe-mgr:steps,-*exe-mgr:memory,-*state-mgr*,-*addr-rslvr*,-*safety-chkr*" # hide code contract memory and container steps`
+- One where modifications to code contract memory are also logged: `export DEBUG="ethjs-ovm:evm*,-*exe-mgr:steps,-*exe-mgr:memory,-*state-mgr*,-*addr-rslvr*,-*safety-chkr*" #print mem`
 
 # USAGE
 

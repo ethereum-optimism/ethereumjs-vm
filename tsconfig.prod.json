@@ -1,6 +1,7 @@
 {
   "extends": "@ethereumjs/config-tsc",
   "compilerOptions": {
+    "downlevelIteration": true,
     "outDir": "./dist"
   },
   "include": ["lib/**/*.ts"]

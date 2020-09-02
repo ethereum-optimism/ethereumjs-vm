@@ -188,7 +188,7 @@ var EVM = /** @class */ (function () {
                         logs = [];
                         if (this._targetMessageResult.execResult.logs) {
                             logs = this._targetMessageResult.execResult.logs.filter(function (log) {
-                                return !(log[0].equals(_this._vm._contracts.ExecutionManager.address));
+                                return !log[0].equals(_this._vm._contracts.ExecutionManager.address);
                             });
                         }
                         // Attach the corrected values to our result.
@@ -373,7 +373,7 @@ var EVM = /** @class */ (function () {
     EVM.prototype.runInterpreter = function (message, opts) {
         if (opts === void 0) { opts = {}; }
         return __awaiter(this, void 0, void 0, function () {
-            var env, _a, eei, oldRefund, interpreter, interpreterRes, result, gasUsed;
+            var intEnv, _a, eei, oldRefund, interpreter, interpreterRes, result, gasUsed;
             return __generator(this, function (_b) {
                 switch (_b.label) {
                     case 0:
@@ -392,12 +392,12 @@ var EVM = /** @class */ (function () {
                         };
                         return [4 /*yield*/, this._state.getAccount(message.to || ethereumjs_util_1.zeros(32))];
                     case 1:
-                        env = (_a.contract = _b.sent(),
+                        intEnv = (_a.contract = _b.sent(),
                             _a.codeAddress = message.codeAddress,
                             _a.originalTargetAddress = message.originalTargetAddress,
                             _a.isOvmCall = this._isOvmCall,
                             _a);
-                        eei = new eei_1.default(env, this._state, this, this._vm._common, message.gasLimit.clone());
+                        eei = new eei_1.default(intEnv, this._state, this, this._vm._common, message.gasLimit.clone());
                         if (message.selfdestruct) {
                             eei._result.selfdestruct = message.selfdestruct;
                         }

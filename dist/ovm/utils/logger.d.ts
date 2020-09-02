@@ -3,7 +3,8 @@ export declare class Logger {
     private _debugger;
     constructor(namespace: string);
     log(message: string): void;
-    scope(namespace: string, section?: string): ScopedLogger;
+    scope(namespace: string, section?: string, id?: string): ScopedLogger;
+    getNamespace(): string;
 }
 export declare class ScopedLogger extends Logger {
     private _section;

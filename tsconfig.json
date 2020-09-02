@@ -2,7 +2,8 @@
   "extends": "@ethereumjs/config-tsc",
   "compilerOptions": {
     "resolveJsonModule": true,
-    "allowSyntheticDefaultImports": true
+    "allowSyntheticDefaultImports": true,
+    "downlevelIteration": true
   },
   "include": ["lib/**/*.ts"]
 }
