@@ -51,5 +51,3 @@ export class ScopedLogger extends Logger {
     this.log(`------${'-'.repeat(message.length)}------`)
   }
 }
-
-

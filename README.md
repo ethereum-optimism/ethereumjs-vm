@@ -10,9 +10,11 @@
 Implements Optimism's OVM in Javascript. Forked with <3 from `ethereumjs-vm`!
 
 # Logging
-This fork provides some custom logging tools for introspecting the OVM.  Particularly, the environment variable `DEBUG_OVM=true` will allow you to log various degrees of internal EVM execution such as calls, stack, and memory.
+
+This fork provides some custom logging tools for introspecting the OVM. Particularly, the environment variable `DEBUG_OVM=true` will allow you to log various degrees of internal EVM execution such as calls, stack, and memory.
 
 ## Namespaces
+
 The logger uses npm `debug` package, and prints EVM steps according to the following format:
 
 - `ethjs-ovm:evm:<addr>...:d<DEPTH>` for `CALL`s, `REVERT`s, and `RETURN`s
@@ -20,19 +22,18 @@ The logger uses npm `debug` package, and prints EVM steps according to the follo
 - `ethjs-ovm:evm:<addr>...:d<DEPTH>:memory` for memory (only logs on steps where memory is updated)
 
 Where:
+
 - `<addr>` is either:
   - The first four bytes of the code contract address, or
   - `exe-mgr`, `state-mgr`, `addr-rslvr`, or `safety-chkr`, if the steps correspond to OVM container execution.
 - `<DEPTH>` is the current EVM call depth of the transaction.
 
 ## Usage
-`debug` can filter these namespaces to suit your loggin needs.  The most common two patterns are:
+
+`debug` can filter these namespaces to suit your loggin needs. The most common two patterns are:
+
 - One where all code contract opcodes are logged, but only `CALL`s and `RETURN` data is logged for container contracts: `export DEBUG="ethjs-ovm:evm*,-ethjs-ovm:evm:*:memory,-*exe-mgr:steps,-*exe-mgr:memory,-*state-mgr*,-*addr-rslvr*,-*safety-chkr*" # hide code contract memory and container steps`
 - One where modifications to code contract memory are also logged: `export DEBUG="ethjs-ovm:evm*,-*exe-mgr:steps,-*exe-mgr:memory,-*state-mgr*,-*addr-rslvr*,-*safety-chkr*" #print mem`
-
-
-
-
 
 # USAGE
 
