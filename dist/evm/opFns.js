@@ -35,6 +35,22 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
+var __read = (this && this.__read) || function (o, n) {
+    var m = typeof Symbol === "function" && o[Symbol.iterator];
+    if (!m) return o;
+    var i = m.call(o), r, ar = [], e;
+    try {
+        while ((n === void 0 || n-- > 0) && !(r = i.next()).done) ar.push(r.value);
+    }
+    catch (error) { e = { error: error }; }
+    finally {
+        try {
+            if (r && !r.done && (m = i["return"])) m.call(i);
+        }
+        finally { if (e) throw e.error; }
+    }
+    return ar;
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.handlers = void 0;
 var BN = require("bn.js");
@@ -60,22 +76,22 @@ exports.handlers = {
         trap(exceptions_1.ERROR.STOP);
     },
     ADD: function (runState) {
-        var _a = runState.stack.popN(2), a = _a[0], b = _a[1];
+        var _a = __read(runState.stack.popN(2), 2), a = _a[0], b = _a[1];
         var r = a.add(b).mod(utils.TWO_POW256);
         runState.stack.push(r);
     },
     MUL: function (runState) {
-        var _a = runState.stack.popN(2), a = _a[0], b = _a[1];
+        var _a = __read(runState.stack.popN(2), 2), a = _a[0], b = _a[1];
         var r = a.mul(b).mod(utils.TWO_POW256);
         runState.stack.push(r);
     },
     SUB: function (runState) {
-        var _a = runState.stack.popN(2), a = _a[0], b = _a[1];
+        var _a = __read(runState.stack.popN(2), 2), a = _a[0], b = _a[1];
         var r = a.sub(b).toTwos(256);
         runState.stack.push(r);
     },
     DIV: function (runState) {
-        var _a = runState.stack.popN(2), a = _a[0], b = _a[1];
+        var _a = __read(runState.stack.popN(2), 2), a = _a[0], b = _a[1];
         var r;
         if (b.isZero()) {
             r = new BN(b);
@@ -86,7 +102,7 @@ exports.handlers = {
         runState.stack.push(r);
     },
     SDIV: function (runState) {
-        var _a = runState.stack.popN(2), a = _a[0], b = _a[1];
+        var _a = __read(runState.stack.popN(2), 2), a = _a[0], b = _a[1];
         var r;
         if (b.isZero()) {
             r = new BN(b);
@@ -99,7 +115,7 @@ exports.handlers = {
         runState.stack.push(r);
     },
     MOD: function (runState) {
-        var _a = runState.stack.popN(2), a = _a[0], b = _a[1];
+        var _a = __read(runState.stack.popN(2), 2), a = _a[0], b = _a[1];
         var r;
         if (b.isZero()) {
             r = new BN(b);
@@ -110,7 +126,7 @@ exports.handlers = {
         runState.stack.push(r);
     },
     SMOD: function (runState) {
-        var _a = runState.stack.popN(2), a = _a[0], b = _a[1];
+        var _a = __read(runState.stack.popN(2), 2), a = _a[0], b = _a[1];
         var r;
         if (b.isZero()) {
             r = new BN(b);
@@ -127,7 +143,7 @@ exports.handlers = {
         runState.stack.push(r);
     },
     ADDMOD: function (runState) {
-        var _a = runState.stack.popN(3), a = _a[0], b = _a[1], c = _a[2];
+        var _a = __read(runState.stack.popN(3), 3), a = _a[0], b = _a[1], c = _a[2];
         var r;
         if (c.isZero()) {
             r = new BN(c);
@@ -138,7 +154,7 @@ exports.handlers = {
         runState.stack.push(r);
     },
     MULMOD: function (runState) {
-        var _a = runState.stack.popN(3), a = _a[0], b = _a[1], c = _a[2];
+        var _a = __read(runState.stack.popN(3), 3), a = _a[0], b = _a[1], c = _a[2];
         var r;
         if (c.isZero()) {
             r = new BN(c);
@@ -149,7 +165,7 @@ exports.handlers = {
         runState.stack.push(r);
     },
     EXP: function (runState) {
-        var _a = runState.stack.popN(2), base = _a[0], exponent = _a[1];
+        var _a = __read(runState.stack.popN(2), 2), base = _a[0], exponent = _a[1];
         if (exponent.isZero()) {
             runState.stack.push(new BN(1));
             return;
@@ -171,7 +187,7 @@ exports.handlers = {
         runState.stack.push(r.fromRed());
     },
     SIGNEXTEND: function (runState) {
-        var _a = runState.stack.popN(2), k = _a[0], val = _a[1];
+        var _a = __read(runState.stack.popN(2), 2), k = _a[0], val = _a[1];
         if (k.ltn(31)) {
             var signBit = k
                 .muln(8)
@@ -193,27 +209,27 @@ exports.handlers = {
     },
     // 0x10 range - bit ops
     LT: function (runState) {
-        var _a = runState.stack.popN(2), a = _a[0], b = _a[1];
+        var _a = __read(runState.stack.popN(2), 2), a = _a[0], b = _a[1];
         var r = new BN(a.lt(b) ? 1 : 0);
         runState.stack.push(r);
     },
     GT: function (runState) {
-        var _a = runState.stack.popN(2), a = _a[0], b = _a[1];
+        var _a = __read(runState.stack.popN(2), 2), a = _a[0], b = _a[1];
         var r = new BN(a.gt(b) ? 1 : 0);
         runState.stack.push(r);
     },
     SLT: function (runState) {
-        var _a = runState.stack.popN(2), a = _a[0], b = _a[1];
+        var _a = __read(runState.stack.popN(2), 2), a = _a[0], b = _a[1];
         var r = new BN(a.fromTwos(256).lt(b.fromTwos(256)) ? 1 : 0);
         runState.stack.push(r);
     },
     SGT: function (runState) {
-        var _a = runState.stack.popN(2), a = _a[0], b = _a[1];
+        var _a = __read(runState.stack.popN(2), 2), a = _a[0], b = _a[1];
         var r = new BN(a.fromTwos(256).gt(b.fromTwos(256)) ? 1 : 0);
         runState.stack.push(r);
     },
     EQ: function (runState) {
-        var _a = runState.stack.popN(2), a = _a[0], b = _a[1];
+        var _a = __read(runState.stack.popN(2), 2), a = _a[0], b = _a[1];
         var r = new BN(a.eq(b) ? 1 : 0);
         runState.stack.push(r);
     },
@@ -223,17 +239,17 @@ exports.handlers = {
         runState.stack.push(r);
     },
     AND: function (runState) {
-        var _a = runState.stack.popN(2), a = _a[0], b = _a[1];
+        var _a = __read(runState.stack.popN(2), 2), a = _a[0], b = _a[1];
         var r = a.and(b);
         runState.stack.push(r);
     },
     OR: function (runState) {
-        var _a = runState.stack.popN(2), a = _a[0], b = _a[1];
+        var _a = __read(runState.stack.popN(2), 2), a = _a[0], b = _a[1];
         var r = a.or(b);
         runState.stack.push(r);
     },
     XOR: function (runState) {
-        var _a = runState.stack.popN(2), a = _a[0], b = _a[1];
+        var _a = __read(runState.stack.popN(2), 2), a = _a[0], b = _a[1];
         var r = a.xor(b);
         runState.stack.push(r);
     },
@@ -243,7 +259,7 @@ exports.handlers = {
         runState.stack.push(r);
     },
     BYTE: function (runState) {
-        var _a = runState.stack.popN(2), pos = _a[0], word = _a[1];
+        var _a = __read(runState.stack.popN(2), 2), pos = _a[0], word = _a[1];
         if (pos.gten(32)) {
             runState.stack.push(new BN(0));
             return;
@@ -252,7 +268,7 @@ exports.handlers = {
         runState.stack.push(r);
     },
     SHL: function (runState) {
-        var _a = runState.stack.popN(2), a = _a[0], b = _a[1];
+        var _a = __read(runState.stack.popN(2), 2), a = _a[0], b = _a[1];
         if (!runState._common.gteHardfork('constantinople')) {
             trap(exceptions_1.ERROR.INVALID_OPCODE);
         }
@@ -264,7 +280,7 @@ exports.handlers = {
         runState.stack.push(r);
     },
     SHR: function (runState) {
-        var _a = runState.stack.popN(2), a = _a[0], b = _a[1];
+        var _a = __read(runState.stack.popN(2), 2), a = _a[0], b = _a[1];
         if (!runState._common.gteHardfork('constantinople')) {
             trap(exceptions_1.ERROR.INVALID_OPCODE);
         }
@@ -276,7 +292,7 @@ exports.handlers = {
         runState.stack.push(r);
     },
     SAR: function (runState) {
-        var _a = runState.stack.popN(2), a = _a[0], b = _a[1];
+        var _a = __read(runState.stack.popN(2), 2), a = _a[0], b = _a[1];
         if (!runState._common.gteHardfork('constantinople')) {
             trap(exceptions_1.ERROR.INVALID_OPCODE);
         }
@@ -305,7 +321,7 @@ exports.handlers = {
     },
     // 0x20 range - crypto
     SHA3: function (runState) {
-        var _a = runState.stack.popN(2), offset = _a[0], length = _a[1];
+        var _a = __read(runState.stack.popN(2), 2), offset = _a[0], length = _a[1];
         subMemUsage(runState, offset, length);
         var data = Buffer.alloc(0);
         if (!length.isZero()) {
@@ -363,7 +379,7 @@ exports.handlers = {
         runState.stack.push(r);
     },
     CALLDATACOPY: function (runState) {
-        var _a = runState.stack.popN(3), memOffset = _a[0], dataOffset = _a[1], dataLength = _a[2];
+        var _a = __read(runState.stack.popN(3), 3), memOffset = _a[0], dataOffset = _a[1], dataLength = _a[2];
         subMemUsage(runState, memOffset, dataLength);
         runState.eei.useGas(new BN(runState._common.param('gasPrices', 'copy')).imul(divCeil(dataLength, new BN(32))));
         var data = getDataSlice(runState.eei.getCallData(), dataOffset, dataLength);
@@ -376,7 +392,7 @@ exports.handlers = {
         runState.stack.push(runState.eei.getCodeSize());
     },
     CODECOPY: function (runState) {
-        var _a = runState.stack.popN(3), memOffset = _a[0], codeOffset = _a[1], length = _a[2];
+        var _a = __read(runState.stack.popN(3), 3), memOffset = _a[0], codeOffset = _a[1], length = _a[2];
         subMemUsage(runState, memOffset, length);
         runState.eei.useGas(new BN(runState._common.param('gasPrices', 'copy')).imul(divCeil(length, new BN(32))));
         var data = getDataSlice(runState.eei.getCode(), codeOffset, length);
@@ -407,7 +423,7 @@ exports.handlers = {
             return __generator(this, function (_b) {
                 switch (_b.label) {
                     case 0:
-                        _a = runState.stack.popN(4), address = _a[0], memOffset = _a[1], codeOffset = _a[2], length = _a[3];
+                        _a = __read(runState.stack.popN(4), 4), address = _a[0], memOffset = _a[1], codeOffset = _a[2], length = _a[3];
                         // FIXME: for some reason this must come before subGas
                         subMemUsage(runState, memOffset, length);
                         // copy fee
@@ -460,7 +476,7 @@ exports.handlers = {
         runState.stack.push(runState.eei.getReturnDataSize());
     },
     RETURNDATACOPY: function (runState) {
-        var _a = runState.stack.popN(3), memOffset = _a[0], returnDataOffset = _a[1], length = _a[2];
+        var _a = __read(runState.stack.popN(3), 3), memOffset = _a[0], returnDataOffset = _a[1], length = _a[2];
         if (returnDataOffset.add(length).gt(runState.eei.getReturnDataSize())) {
             trap(exceptions_1.ERROR.OUT_OF_GAS);
         }
@@ -536,7 +552,7 @@ exports.handlers = {
         runState.stack.push(new BN(word));
     },
     MSTORE: function (runState) {
-        var _a = runState.stack.popN(2), offset = _a[0], word = _a[1];
+        var _a = __read(runState.stack.popN(2), 2), offset = _a[0], word = _a[1];
         var buf = word.toArrayLike(Buffer, 'be', 32);
         subMemUsage(runState, offset, new BN(32));
         var offsetNum = offset.toNumber();
@@ -544,7 +560,7 @@ exports.handlers = {
         runState.memory.write(offsetNum, 32, buf);
     },
     MSTORE8: function (runState) {
-        var _a = runState.stack.popN(2), offset = _a[0], byte = _a[1];
+        var _a = __read(runState.stack.popN(2), 2), offset = _a[0], byte = _a[1];
         // NOTE: we're using a 'trick' here to get the least significant byte
         // NOTE: force cast necessary because `BN.andln` returns number but
         // the types are wrong
@@ -581,7 +597,7 @@ exports.handlers = {
                         if (runState.eei.isStatic()) {
                             trap(exceptions_1.ERROR.STATIC_STATE_CHANGE);
                         }
-                        _a = runState.stack.popN(2), key = _a[0], val = _a[1];
+                        _a = __read(runState.stack.popN(2), 2), key = _a[0], val = _a[1];
                         keyBuf = key.toArrayLike(Buffer, 'be', 32);
                         if (val.isZero()) {
                             value = Buffer.from([]);
@@ -613,7 +629,7 @@ exports.handlers = {
         runState.programCounter = destNum;
     },
     JUMPI: function (runState) {
-        var _a = runState.stack.popN(2), dest = _a[0], cond = _a[1];
+        var _a = __read(runState.stack.popN(2), 2), dest = _a[0], cond = _a[1];
         if (!cond.isZero()) {
             if (dest.gt(runState.eei.getCodeSize())) {
                 trap(exceptions_1.ERROR.INVALID_JUMP + ' at ' + describeLocation(runState));
@@ -656,7 +672,7 @@ exports.handlers = {
         if (runState.eei.isStatic()) {
             trap(exceptions_1.ERROR.STATIC_STATE_CHANGE);
         }
-        var _a = runState.stack.popN(2), memOffset = _a[0], memLength = _a[1];
+        var _a = __read(runState.stack.popN(2), 2), memOffset = _a[0], memLength = _a[1];
         var topicsCount = runState.opCode - 0xa0;
         if (topicsCount < 0 || topicsCount > 4) {
             trap(exceptions_1.ERROR.OUT_OF_RANGE);
@@ -685,7 +701,7 @@ exports.handlers = {
                         if (runState.eei.isStatic()) {
                             trap(exceptions_1.ERROR.STATIC_STATE_CHANGE);
                         }
-                        _a = runState.stack.popN(3), value = _a[0], offset = _a[1], length = _a[2];
+                        _a = __read(runState.stack.popN(3), 3), value = _a[0], offset = _a[1], length = _a[2];
                         subMemUsage(runState, offset, length);
                         gasLimit = new BN(runState.eei.getGasLeft());
                         gasLimit = maxCallGas(gasLimit, runState.eei.getGasLeft());
@@ -714,7 +730,7 @@ exports.handlers = {
                         if (runState.eei.isStatic()) {
                             trap(exceptions_1.ERROR.STATIC_STATE_CHANGE);
                         }
-                        _a = runState.stack.popN(4), value = _a[0], offset = _a[1], length = _a[2], salt = _a[3];
+                        _a = __read(runState.stack.popN(4), 4), value = _a[0], offset = _a[1], length = _a[2], salt = _a[3];
                         subMemUsage(runState, offset, length);
                         // Deduct gas costs for hashing
                         runState.eei.useGas(new BN(runState._common.param('gasPrices', 'sha3Word')).imul(divCeil(length, new BN(32))));
@@ -739,7 +755,7 @@ exports.handlers = {
             return __generator(this, function (_b) {
                 switch (_b.label) {
                     case 0:
-                        _a = runState.stack.popN(7), gasLimit = _a[0], toAddress = _a[1], value = _a[2], inOffset = _a[3], inLength = _a[4], outOffset = _a[5], outLength = _a[6];
+                        _a = __read(runState.stack.popN(7), 7), gasLimit = _a[0], toAddress = _a[1], value = _a[2], inOffset = _a[3], inLength = _a[4], outOffset = _a[5], outLength = _a[6];
                         toAddressBuf = addressToBuffer(toAddress);
                         if (runState.eei.isStatic() && !value.isZero()) {
                             trap(exceptions_1.ERROR.STATIC_STATE_CHANGE);
@@ -786,7 +802,7 @@ exports.handlers = {
             return __generator(this, function (_b) {
                 switch (_b.label) {
                     case 0:
-                        _a = runState.stack.popN(7), gasLimit = _a[0], toAddress = _a[1], value = _a[2], inOffset = _a[3], inLength = _a[4], outOffset = _a[5], outLength = _a[6];
+                        _a = __read(runState.stack.popN(7), 7), gasLimit = _a[0], toAddress = _a[1], value = _a[2], inOffset = _a[3], inLength = _a[4], outOffset = _a[5], outLength = _a[6];
                         toAddressBuf = addressToBuffer(toAddress);
                         subMemUsage(runState, inOffset, inLength);
                         subMemUsage(runState, outOffset, outLength);
@@ -823,7 +839,7 @@ exports.handlers = {
                 switch (_b.label) {
                     case 0:
                         value = runState.eei.getCallValue();
-                        _a = runState.stack.popN(6), gasLimit = _a[0], toAddress = _a[1], inOffset = _a[2], inLength = _a[3], outOffset = _a[4], outLength = _a[5];
+                        _a = __read(runState.stack.popN(6), 6), gasLimit = _a[0], toAddress = _a[1], inOffset = _a[2], inLength = _a[3], outOffset = _a[4], outLength = _a[5];
                         toAddressBuf = addressToBuffer(toAddress);
                         subMemUsage(runState, inOffset, inLength);
                         subMemUsage(runState, outOffset, outLength);
@@ -852,7 +868,7 @@ exports.handlers = {
                 switch (_b.label) {
                     case 0:
                         value = new BN(0);
-                        _a = runState.stack.popN(6), gasLimit = _a[0], toAddress = _a[1], inOffset = _a[2], inLength = _a[3], outOffset = _a[4], outLength = _a[5];
+                        _a = __read(runState.stack.popN(6), 6), gasLimit = _a[0], toAddress = _a[1], inOffset = _a[2], inLength = _a[3], outOffset = _a[4], outLength = _a[5];
                         toAddressBuf = addressToBuffer(toAddress);
                         subMemUsage(runState, inOffset, inLength);
                         subMemUsage(runState, outOffset, outLength);
@@ -875,7 +891,7 @@ exports.handlers = {
         });
     },
     RETURN: function (runState) {
-        var _a = runState.stack.popN(2), offset = _a[0], length = _a[1];
+        var _a = __read(runState.stack.popN(2), 2), offset = _a[0], length = _a[1];
         subMemUsage(runState, offset, length);
         var returnData = Buffer.alloc(0);
         if (!length.isZero()) {
@@ -884,7 +900,7 @@ exports.handlers = {
         runState.eei.finish(returnData);
     },
     REVERT: function (runState) {
-        var _a = runState.stack.popN(2), offset = _a[0], length = _a[1];
+        var _a = __read(runState.stack.popN(2), 2), offset = _a[0], length = _a[1];
         subMemUsage(runState, offset, length);
         var returnData = Buffer.alloc(0);
         if (!length.isZero()) {

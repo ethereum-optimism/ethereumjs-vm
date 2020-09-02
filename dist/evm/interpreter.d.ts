@@ -7,6 +7,7 @@ import { VmError } from '../exceptions';
 import Memory from './memory';
 import Stack from './stack';
 import EEI from './eei';
+import { Logger, ScopedLogger } from '../ovm/utils/logger';
 import { Opcode } from './opcodes';
 import { OpHandler } from './opFns';
 import Account from 'ethereumjs-account';
@@ -51,6 +52,11 @@ export default class Interpreter {
     _state: PStateManager;
     _runState: RunState;
     _eei: EEI;
+    _executionLoggers: Map<number, {
+        callLogger: ScopedLogger;
+        stepLogger: Logger;
+        memLogger: Logger;
+    }>;
     constructor(vm: any, eei: EEI);
     run(code: Buffer, opts?: InterpreterOpts): Promise<InterpreterResult>;
     /**

@@ -35,6 +35,17 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
+var __values = (this && this.__values) || function(o) {
+    var s = typeof Symbol === "function" && Symbol.iterator, m = s && o[s], i = 0;
+    if (m) return m.call(o);
+    if (o && typeof o.length === "number") return {
+        next: function () {
+            if (o && i >= o.length) o = void 0;
+            return { value: o && o[i++], done: !o };
+        }
+    };
+    throw new TypeError(s ? "Object is not iterable." : "Symbol.iterator is not defined.");
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 var BN = require("bn.js");
 var ethereumjs_util_1 = require("ethereumjs-util");
@@ -95,9 +106,10 @@ function runTx(opts) {
 exports.default = runTx;
 function _runTx(opts) {
     return __awaiter(this, void 0, void 0, function () {
-        var block, tx, state, basefee, gasLimit, fromAccount, txContext, message, evm, results, gasRefund, finalFromBalance, minerAccount, keys, _i, keys_1, k;
-        return __generator(this, function (_a) {
-            switch (_a.label) {
+        var block, tx, state, basefee, gasLimit, fromAccount, txContext, message, evm, results, gasRefund, finalFromBalance, minerAccount, keys, keys_1, keys_1_1, k, e_2_1;
+        var e_2, _a;
+        return __generator(this, function (_b) {
+            switch (_b.label) {
                 case 0:
                     block = opts.block;
                     tx = opts.tx;
@@ -120,7 +132,7 @@ function _runTx(opts) {
                      * @type {Object}
                      * @property {Transaction} tx emits the Transaction that is about to be processed
                      */
-                    _a.sent();
+                    _b.sent();
                     basefee = tx.getBaseFee();
                     gasLimit = new BN(tx.gasLimit);
                     if (gasLimit.lt(basefee)) {
@@ -133,7 +145,7 @@ function _runTx(opts) {
                     }
                     return [4 /*yield*/, state.getAccount(tx.getSenderAddress())];
                 case 2:
-                    fromAccount = _a.sent();
+                    fromAccount = _b.sent();
                     if (!opts.skipBalance && new BN(fromAccount.balance).lt(tx.getUpfrontCost())) {
                         throw new Error("sender doesn't have enough funds to send tx. The upfront cost is: " + tx
                             .getUpfrontCost()
@@ -159,7 +171,7 @@ function _runTx(opts) {
                     //fromAccount.balance = toBuffer(
                     //  new BN(fromAccount.balance).sub(new BN(tx.gasLimit).mul(new BN(tx.gasPrice))),
                     //)
-                    _a.sent();
+                    _b.sent();
                     txContext = new txContext_1.default(tx.gasPrice, tx.getSenderAddress());
                     message = new message_1.default({
                         caller: tx.getSenderAddress(),
@@ -173,7 +185,7 @@ function _runTx(opts) {
                     evm = new evm_1.default(this, txContext, block);
                     return [4 /*yield*/, evm.executeMessage(message)];
                 case 4:
-                    results = (_a.sent());
+                    results = (_b.sent());
                     /*
                      * Parse results
                      */
@@ -194,7 +206,7 @@ function _runTx(opts) {
                     return [4 /*yield*/, state.getAccount(tx.getSenderAddress())];
                 case 5:
                     // Update sender's balance
-                    fromAccount = _a.sent();
+                    fromAccount = _b.sent();
                     finalFromBalance = new BN(tx.gasLimit)
                         .sub(results.gasUsed)
                         .mul(new BN(tx.gasPrice))
@@ -205,34 +217,48 @@ function _runTx(opts) {
                     ];
                 case 6:
                     //fromAccount.balance = toBuffer(finalFromBalance)
-                    _a.sent();
+                    _b.sent();
                     return [4 /*yield*/, state.getAccount(block.header.coinbase)
                         // add the amount spent on gas to the miner's account
                         //minerAccount.balance = toBuffer(new BN(minerAccount.balance).add(results.amountSpent))
                     ];
                 case 7:
-                    minerAccount = _a.sent();
+                    minerAccount = _b.sent();
                     if (!!new BN(minerAccount.balance).isZero()) return [3 /*break*/, 9];
                     return [4 /*yield*/, state.putAccount(block.header.coinbase, minerAccount)];
                 case 8:
-                    _a.sent();
-                    _a.label = 9;
+                    _b.sent();
+                    _b.label = 9;
                 case 9:
-                    if (!results.execResult.selfdestruct) return [3 /*break*/, 13];
+                    if (!results.execResult.selfdestruct) return [3 /*break*/, 17];
                     keys = Object.keys(results.execResult.selfdestruct);
-                    _i = 0, keys_1 = keys;
-                    _a.label = 10;
+                    _b.label = 10;
                 case 10:
-                    if (!(_i < keys_1.length)) return [3 /*break*/, 13];
-                    k = keys_1[_i];
-                    return [4 /*yield*/, state.putAccount(Buffer.from(k, 'hex'), new ethereumjs_account_1.default())];
+                    _b.trys.push([10, 15, 16, 17]);
+                    keys_1 = __values(keys), keys_1_1 = keys_1.next();
+                    _b.label = 11;
                 case 11:
-                    _a.sent();
-                    _a.label = 12;
+                    if (!!keys_1_1.done) return [3 /*break*/, 14];
+                    k = keys_1_1.value;
+                    return [4 /*yield*/, state.putAccount(Buffer.from(k, 'hex'), new ethereumjs_account_1.default())];
                 case 12:
-                    _i++;
-                    return [3 /*break*/, 10];
-                case 13: return [4 /*yield*/, state.cleanupTouchedAccounts()
+                    _b.sent();
+                    _b.label = 13;
+                case 13:
+                    keys_1_1 = keys_1.next();
+                    return [3 /*break*/, 11];
+                case 14: return [3 /*break*/, 17];
+                case 15:
+                    e_2_1 = _b.sent();
+                    e_2 = { error: e_2_1 };
+                    return [3 /*break*/, 17];
+                case 16:
+                    try {
+                        if (keys_1_1 && !keys_1_1.done && (_a = keys_1.return)) _a.call(keys_1);
+                    }
+                    finally { if (e_2) throw e_2.error; }
+                    return [7 /*endfinally*/];
+                case 17: return [4 /*yield*/, state.cleanupTouchedAccounts()
                     /**
                      * The `afterTx` event
                      *
@@ -241,8 +267,8 @@ function _runTx(opts) {
                      * @property {Object} result result of the transaction
                      */
                 ];
-                case 14:
-                    _a.sent();
+                case 18:
+                    _b.sent();
                     /**
                      * The `afterTx` event
                      *
@@ -251,7 +277,7 @@ function _runTx(opts) {
                      * @property {Object} result result of the transaction
                      */
                     return [4 /*yield*/, this._emit('afterTx', results)];
-                case 15:
+                case 19:
                     /**
                      * The `afterTx` event
                      *
@@ -259,7 +285,7 @@ function _runTx(opts) {
                      * @type {Object}
                      * @property {Object} result result of the transaction
                      */
-                    _a.sent();
+                    _b.sent();
                     return [2 /*return*/, results];
             }
         });

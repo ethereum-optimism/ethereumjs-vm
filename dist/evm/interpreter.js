@@ -46,14 +46,50 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
+var __values = (this && this.__values) || function(o) {
+    var s = typeof Symbol === "function" && Symbol.iterator, m = s && o[s], i = 0;
+    if (m) return m.call(o);
+    if (o && typeof o.length === "number") return {
+        next: function () {
+            if (o && i >= o.length) o = void 0;
+            return { value: o && o[i++], done: !o };
+        }
+    };
+    throw new TypeError(s ? "Object is not iterable." : "Symbol.iterator is not defined.");
+};
+var __read = (this && this.__read) || function (o, n) {
+    var m = typeof Symbol === "function" && o[Symbol.iterator];
+    if (!m) return o;
+    var i = m.call(o), r, ar = [], e;
+    try {
+        while ((n === void 0 || n-- > 0) && !(r = i.next()).done) ar.push(r.value);
+    }
+    catch (error) { e = { error: error }; }
+    finally {
+        try {
+            if (r && !r.done && (m = i["return"])) m.call(i);
+        }
+        finally { if (e) throw e.error; }
+    }
+    return ar;
+};
+var __spread = (this && this.__spread) || function () {
+    for (var ar = [], i = 0; i < arguments.length; i++) ar = ar.concat(__read(arguments[i]));
+    return ar;
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 var BN = require("bn.js");
 var exceptions_1 = require("../exceptions");
 var memory_1 = require("./memory");
 var stack_1 = require("./stack");
+var logger_1 = require("../ovm/utils/logger");
 var opFns_1 = require("./opFns");
 var process_1 = require("process");
+var logger = new logger_1.Logger('ethjs-ovm');
 var printNextMem = false;
+var padToLengthIfPossible = function (str, len) {
+    return str.length > len ? str : str + ' '.repeat(len - str.length);
+};
 /**
  * Parses and executes EVM bytecode.
  */
@@ -76,13 +112,15 @@ var Interpreter = /** @class */ (function () {
             stateManager: this._state._wrapped,
             eei: this._eei,
         };
+        this._executionLoggers = new Map();
     }
     Interpreter.prototype.run = function (code, opts) {
         if (opts === void 0) { opts = {}; }
         return __awaiter(this, void 0, void 0, function () {
-            var pc, err, opCode, e_1;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
+            var pc, err, opCode, e_1, _a, _b, _c, depth, _d, callLogger, stepLogger;
+            var e_2, _e;
+            return __generator(this, function (_f) {
+                switch (_f.label) {
                     case 0:
                         this._runState.code = code;
                         this._runState.programCounter = opts.pc || this._runState.programCounter;
@@ -91,23 +129,23 @@ var Interpreter = /** @class */ (function () {
                         if (pc !== 0 && (pc < 0 || pc >= this._runState.code.length)) {
                             throw new Error('Internal error: program counter not in range');
                         }
-                        _a.label = 1;
+                        _f.label = 1;
                     case 1:
                         if (!(this._runState.programCounter < this._runState.code.length)) return [3 /*break*/, 7];
                         opCode = this._runState.code[this._runState.programCounter];
                         this._runState.opCode = opCode;
                         return [4 /*yield*/, this._runStepHook()];
                     case 2:
-                        _a.sent();
-                        _a.label = 3;
+                        _f.sent();
+                        _f.label = 3;
                     case 3:
-                        _a.trys.push([3, 5, , 6]);
+                        _f.trys.push([3, 5, , 6]);
                         return [4 /*yield*/, this.runStep()];
                     case 4:
-                        _a.sent();
+                        _f.sent();
                         return [3 /*break*/, 6];
                     case 5:
-                        e_1 = _a.sent();
+                        e_1 = _f.sent();
                         // STOP is not an exception
                         if (e_1.error !== exceptions_1.ERROR.STOP) {
                             err = e_1;
@@ -115,10 +153,24 @@ var Interpreter = /** @class */ (function () {
                         // TODO: Throw on non-VmError exceptions
                         return [3 /*break*/, 7];
                     case 6: return [3 /*break*/, 1];
-                    case 7: return [2 /*return*/, {
-                            runState: this._runState,
-                            exceptionError: err,
-                        }];
+                    case 7:
+                        try {
+                            for (_a = __values(this._executionLoggers.entries()), _b = _a.next(); !_b.done; _b = _a.next()) {
+                                _c = __read(_b.value, 2), depth = _c[0], _d = _c[1], callLogger = _d.callLogger, stepLogger = _d.stepLogger;
+                                callLogger.close();
+                            }
+                        }
+                        catch (e_2_1) { e_2 = { error: e_2_1 }; }
+                        finally {
+                            try {
+                                if (_b && !_b.done && (_e = _a.return)) _e.call(_a);
+                            }
+                            finally { if (e_2) throw e_2.error; }
+                        }
+                        return [2 /*return*/, {
+                                runState: this._runState,
+                                exceptionError: err,
+                            }];
                 }
             });
         });
@@ -205,8 +257,14 @@ var Interpreter = /** @class */ (function () {
                     memoryWordCount: this._runState.memoryWordCount,
                     codeAddress: this._eei._env.codeAddress,
                 };
-                if (process_1.env.DEBUG_OVM === 'true')
-                    this.logStep(eventObj);
+                if (process_1.env.DEBUG_OVM === 'true') {
+                    try {
+                        this.logStep(eventObj);
+                    }
+                    catch (e) {
+                        logger.log("Caught error logging VM step: " + JSON.stringify(e));
+                    }
+                }
                 /**
                  * The `step` event for trace output
                  *
@@ -228,28 +286,101 @@ var Interpreter = /** @class */ (function () {
         });
     };
     Interpreter.prototype.logStep = function (info) {
-        var name = info.opcode.name;
-        // Optimism Stack logging
-        var curMemory = info['memory'];
-        var memToPrint;
-        if (['CALL', 'CREATE', 'CREATE2', 'STATICCALL', 'RETURN', 'REVERT', 'DELEGATECALL'].includes(info.opcode.name) ||
-            printNextMem) {
-            memToPrint = "[" + ('0x' + Buffer.from(curMemory).toString('hex')) + "]";
-            printNextMem = false;
+        var e_3, _a;
+        if (!this._eei._env.isOvmCall) {
+            return;
         }
-        else if (['MSTORE', 'CALLDATACOPY', 'RETUNDATACOPY', 'CODECOPY'].includes(info.opcode.name)) {
+        var opName = info.opcode.name;
+        var curAddress = info['address'].toString('hex');
+        var curDepth = info['depth'];
+        var scope = curAddress.slice(0, 8) + '..:d' + info['depth'];
+        if (!this._executionLoggers.has(curDepth)) {
+            var addrName = curAddress;
+            try {
+                for (var _b = __values(Object.keys(this._vm._contracts)), _c = _b.next(); !_c.done; _c = _b.next()) {
+                    var ovmContract = _c.value;
+                    if (!!this._vm._contracts[ovmContract].address) {
+                        if (curAddress == (this._vm._contracts[ovmContract].address.toString('hex'))) {
+                            addrName = ovmContract;
+                            scope = new Map([
+                                ['AddressResolver', 'addr-rslvr'],
+                                ['StateManager', 'state-mgr'],
+                                ['SafetyChecker', 'safety-chkr'],
+                                ['ExecutionManager', 'exe-mgr']
+                            ]).get(ovmContract) || ovmContract;
+                        }
+                    }
+                }
+            }
+            catch (e_3_1) { e_3 = { error: e_3_1 }; }
+            finally {
+                try {
+                    if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
+                }
+                finally { if (e_3) throw e_3.error; }
+            }
+            var descriptionStart = curDepth === 0 ? 'OVM TX. starts with ' : 'EVM STEPS for ';
+            var callLogger_1 = logger.scope('evm', descriptionStart + addrName + ' at depth ' + curDepth, scope);
+            var stepLogger_1 = new logger_1.Logger(callLogger_1.getNamespace() + ':steps');
+            var memLogger_1 = new logger_1.Logger(callLogger_1.getNamespace() + ':memory');
+            callLogger_1.open();
+            this._executionLoggers.set(curDepth, { callLogger: callLogger_1, stepLogger: stepLogger_1, memLogger: memLogger_1 });
+        }
+        var callLogger;
+        var stepLogger;
+        var memLogger;
+        var loggers = this._executionLoggers.get(curDepth);
+        if (!!loggers) {
+            callLogger = loggers.callLogger;
+            stepLogger = loggers.stepLogger;
+            memLogger = loggers.memLogger;
+        }
+        if (callLogger === undefined || stepLogger === undefined || memLogger === undefined) {
+            return;
+        }
+        var curMemory = info['memory'];
+        var stack;
+        if (['RETURN', 'REVERT'].includes(opName)) {
+            stack = new (Array.bind.apply(Array, __spread([void 0], info['stack'])))().reverse();
+            var offset = stack[0];
+            var length = stack[1];
+            var returnOrRevertData = Buffer.from(curMemory.slice(offset.toNumber(), offset.toNumber() + length.toNumber()));
+            callLogger.log(opName + ' with data: 0x' + returnOrRevertData.toString('hex'));
+            callLogger.close();
+            this._executionLoggers.delete(curDepth);
+            return;
+        }
+        if (opName == 'CALL') {
+            stack = new (Array.bind.apply(Array, __spread([void 0], info['stack'])))().reverse();
+            var target = stack[1].toBuffer();
+            var argsOffset = stack[3];
+            var argsLength = stack[4];
+            var calldata = Buffer.from(curMemory.slice(argsOffset.toNumber(), argsOffset.toNumber() + argsLength.toNumber()));
+            if (!!this._vm._contracts.ExecutionManager.address) {
+                if (target.equals(this._vm._contracts.ExecutionManager.address)) {
+                    var _d = this._vm._contracts.ExecutionManager.decodeFunctionData(calldata), functionName = _d.functionName, functionArgs = _d.functionArgs;
+                    callLogger.log("CALL to ExecutionManager." + functionName + " with: " + functionArgs + " (raw w/o sighash): 0x" + calldata.slice(4).toString('hex') + ")");
+                }
+                else {
+                    callLogger.log("CALL to " + target.toString('hex') + " with data: \n0x" + calldata.toString('hex'));
+                }
+            }
+            return;
+        }
+        var printThisMem = ['CALL', 'CREATE', 'CREATE2', 'STATICCALL', 'DELEGATECALL'].includes(opName) || printNextMem;
+        printNextMem = false;
+        if (['MSTORE', 'CALLDATACOPY', 'RETUNDATACOPY', 'CODECOPY'].includes(opName)) {
             printNextMem = true;
         }
-        else {
-            memToPrint = '[suppressed]';
+        if (stack === undefined) {
+            stack = new (Array.bind.apply(Array, __spread([void 0], info['stack'])))().reverse();
         }
-        console.log("\nopcode: " + name + ",{pc: 0x" + info['pc'].toString(16) + ", stackDepth: " + info['stack'].length + ", \nstack: [" + info['stack']
-            .map(function (x) { return x.toBuffer(); })
-            .reverse()
-            .map(function (x) {
-            return '0x' + x.toString('hex');
-        }) + "], memoryWordCount: " + info['memoryWordCount'].toNumber() + ", \n      memory: " + memToPrint + ", \n      address: " + ('0x' +
-            info['address'].toString('hex')));
+        stepLogger.log("op:" + padToLengthIfPossible(opName, 9) + "stack:[  " + stack.map(function (stackEl) {
+            return '0x' + stackEl.toString("hex");
+        }) + "], pc:0x" + info['pc'].toString(6));
+        if (printThisMem) {
+            memLogger.log("[" + ('0x' + Buffer.from(curMemory).toString('hex')) + "]");
+        }
     };
     // Returns all valid jump destinations.
     Interpreter.prototype._getValidJumpDests = function (code) {

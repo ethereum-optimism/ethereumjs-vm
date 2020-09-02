@@ -35,6 +35,26 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
+var __read = (this && this.__read) || function (o, n) {
+    var m = typeof Symbol === "function" && o[Symbol.iterator];
+    if (!m) return o;
+    var i = m.call(o), r, ar = [], e;
+    try {
+        while ((n === void 0 || n-- > 0) && !(r = i.next()).done) ar.push(r.value);
+    }
+    catch (error) { e = { error: error }; }
+    finally {
+        try {
+            if (r && !r.done && (m = i["return"])) m.call(i);
+        }
+        finally { if (e) throw e.error; }
+    }
+    return ar;
+};
+var __spread = (this && this.__spread) || function () {
+    for (var ar = [], i = 0; i < arguments.length; i++) ar = ar.concat(__read(arguments[i]));
+    return ar;
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.OvmStateManager = void 0;
 /* External Imports */
@@ -72,7 +92,7 @@ var OvmStateManager = /** @class */ (function () {
                         fragment = this._def.iface.getFunction(methodId);
                         functionArgs = this._def.iface.decodeFunctionData(fragment, buffer_utils_1.toHexString(message.data));
                         logger.log("Calling function: " + fragment.name + " with args " + functionArgs);
-                        return [4 /*yield*/, (_a = this._handlers)[fragment.name].apply(_a, functionArgs)];
+                        return [4 /*yield*/, (_a = this._handlers)[fragment.name].apply(_a, __spread(functionArgs))];
                     case 1:
                         ret = _b.sent();
                         encodedRet = this._def.iface.encodeFunctionResult(fragment, ret);

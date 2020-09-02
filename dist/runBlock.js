@@ -35,6 +35,17 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
+var __values = (this && this.__values) || function(o) {
+    var s = typeof Symbol === "function" && Symbol.iterator, m = s && o[s], i = 0;
+    if (m) return m.call(o);
+    if (o && typeof o.length === "number") return {
+        next: function () {
+            if (o && i >= o.length) o = void 0;
+            return { value: o && o[i++], done: !o };
+        }
+    };
+    throw new TypeError(s ? "Object is not iterable." : "Symbol.iterator is not defined.");
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 var BN = require("bn.js");
 var ethereumjs_util_1 = require("ethereumjs-util");
@@ -272,31 +283,46 @@ function applyTransactions(block, opts) {
  */
 function assignBlockRewards(block) {
     return __awaiter(this, void 0, void 0, function () {
-        var state, minerReward, ommers, _i, ommers_1, ommer, reward_1, reward;
-        return __generator(this, function (_a) {
-            switch (_a.label) {
+        var state, minerReward, ommers, ommers_1, ommers_1_1, ommer, reward_1, e_1_1, reward;
+        var e_1, _a;
+        return __generator(this, function (_b) {
+            switch (_b.label) {
                 case 0:
                     state = this.pStateManager;
                     minerReward = new BN(this._common.param('pow', 'minerReward'));
                     ommers = block.uncleHeaders;
-                    _i = 0, ommers_1 = ommers;
-                    _a.label = 1;
+                    _b.label = 1;
                 case 1:
-                    if (!(_i < ommers_1.length)) return [3 /*break*/, 4];
-                    ommer = ommers_1[_i];
+                    _b.trys.push([1, 6, 7, 8]);
+                    ommers_1 = __values(ommers), ommers_1_1 = ommers_1.next();
+                    _b.label = 2;
+                case 2:
+                    if (!!ommers_1_1.done) return [3 /*break*/, 5];
+                    ommer = ommers_1_1.value;
                     reward_1 = calculateOmmerReward(new BN(ommer.number), new BN(block.header.number), minerReward);
                     return [4 /*yield*/, rewardAccount(state, ommer.coinbase, reward_1)];
-                case 2:
-                    _a.sent();
-                    _a.label = 3;
                 case 3:
-                    _i++;
-                    return [3 /*break*/, 1];
+                    _b.sent();
+                    _b.label = 4;
                 case 4:
+                    ommers_1_1 = ommers_1.next();
+                    return [3 /*break*/, 2];
+                case 5: return [3 /*break*/, 8];
+                case 6:
+                    e_1_1 = _b.sent();
+                    e_1 = { error: e_1_1 };
+                    return [3 /*break*/, 8];
+                case 7:
+                    try {
+                        if (ommers_1_1 && !ommers_1_1.done && (_a = ommers_1.return)) _a.call(ommers_1);
+                    }
+                    finally { if (e_1) throw e_1.error; }
+                    return [7 /*endfinally*/];
+                case 8:
                     reward = calculateMinerReward(minerReward, ommers.length);
                     return [4 /*yield*/, rewardAccount(state, block.header.coinbase, reward)];
-                case 5:
-                    _a.sent();
+                case 9:
+                    _b.sent();
                     return [2 /*return*/];
             }
         });
