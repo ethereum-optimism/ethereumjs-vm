@@ -205,8 +205,6 @@ export default class EVM {
       await this._state.commit()
     }
 
-    await this._vm._emit('afterMessage', result)
-
     // Store the result of executing our target message for later.
     if (isTargetMessage) {
       this._targetMessageResult = result
@@ -219,16 +217,11 @@ export default class EVM {
         // so that they don't influence the state trie.
         await this._resetContractSnapshot()
 
-        // Address attached to any logs will be the ExecutionManager by default.
-        // We need to replace these addresses with the target address so
-        // clients can properly detect and decode them.
+        // Need to remove ExecutionManager logs.
         let logs: any[] = []
         if (this._targetMessageResult.execResult.logs) {
-          logs = this._targetMessageResult.execResult.logs.map(log => {
-            log[0] =
-              (this._targetMessage as Message).to ||
-              (this._targetMessageResult as EVMResult).createdAddress
-            return log
+          logs = this._targetMessageResult.execResult.logs.filter(log => {
+            return !log[0].equals(this._vm._contracts.ExecutionManager.address)
           })
         }
 
@@ -239,6 +232,7 @@ export default class EVM {
           execResult: {
             ...result.execResult,
             returnValue: this._targetMessageResult.execResult.returnValue,
+            exceptionError: this._targetMessageResult.execResult.exceptionError,
             logs: logs,
           },
         }
@@ -250,12 +244,10 @@ export default class EVM {
           ? toHexString(message.originalTargetAddress)
           : 'CONTRACT CREATION'
         slogger.log(`ERROR: Execution failed to reach target address: ${targetAddress}`)
-
-        if (!err) {
-          throw new Error(`Execution failed to reach target address: ${targetAddress}`)
-        }
       }
     }
+
+    await this._vm._emit('afterMessage', result)
 
     slogger.close()
 

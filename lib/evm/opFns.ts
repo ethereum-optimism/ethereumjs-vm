@@ -806,6 +806,7 @@ export const handlers: { [k: string]: OpHandler } = {
     if (!length.isZero()) {
       returnData = runState.memory.read(offset.toNumber(), length.toNumber())
     }
+
     runState.eei.revert(returnData)
   },
   // '0x70', range - other
