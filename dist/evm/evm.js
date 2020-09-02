@@ -188,7 +188,7 @@ var EVM = /** @class */ (function () {
                         logs = [];
                         if (this._targetMessageResult.execResult.logs) {
                             logs = this._targetMessageResult.execResult.logs.filter(function (log) {
-                                return !(log[0].equals(_this._vm._contracts.ExecutionManager.address));
+                                return !log[0].equals(_this._vm._contracts.ExecutionManager.address);
                             });
                         }
                         // Attach the corrected values to our result.
