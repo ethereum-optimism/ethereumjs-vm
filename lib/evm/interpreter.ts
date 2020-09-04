@@ -12,6 +12,7 @@ import { handlers as opHandlers, OpHandler } from './opFns'
 import Account from 'ethereumjs-account'
 import { env, off } from 'process'
 import { add } from 'lodash'
+import logGas from './logGas'
 
 const logger = new Logger('ethjs-ovm')
 
@@ -216,6 +217,17 @@ export default class Interpreter {
     if (env.DEBUG_OVM === 'true') {
       try {
         this.logStep(eventObj)
+      } catch (e) {
+        logger.log(`Caught error logging VM step: ${JSON.stringify(e)}`)
+      }
+    }
+
+
+    if (env.DEBUG_OVM_GAS === 'true') {
+      try {
+        if (this._eei._env.isOvmCall) {
+         logGas(eventObj, this._vm)
+        }
       } catch (e) {
         logger.log(`Caught error logging VM step: ${JSON.stringify(e)}`)
       }

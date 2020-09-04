@@ -85,6 +85,7 @@ var stack_1 = require("./stack");
 var logger_1 = require("../ovm/utils/logger");
 var opFns_1 = require("./opFns");
 var process_1 = require("process");
+var logGas_1 = require("./logGas");
 var logger = new logger_1.Logger('ethjs-ovm');
 var printNextMem = false;
 var padToLengthIfPossible = function (str, len) {
@@ -265,6 +266,16 @@ var Interpreter = /** @class */ (function () {
                         logger.log("Caught error logging VM step: " + JSON.stringify(e));
                     }
                 }
+                if (process_1.env.DEBUG_OVM_GAS === 'true') {
+                    try {
+                        if (this._eei._env.isOvmCall) {
+                            logGas_1.default(eventObj, this._vm);
+                        }
+                    }
+                    catch (e) {
+                        logger.log("Caught error logging VM step: " + JSON.stringify(e));
+                    }
+                }
                 /**
                  * The `step` event for trace output
                  *
@@ -300,14 +311,15 @@ var Interpreter = /** @class */ (function () {
                 for (var _b = __values(Object.keys(this._vm._contracts)), _c = _b.next(); !_c.done; _c = _b.next()) {
                     var ovmContract = _c.value;
                     if (!!this._vm._contracts[ovmContract].address) {
-                        if (curAddress == (this._vm._contracts[ovmContract].address.toString('hex'))) {
+                        if (curAddress == this._vm._contracts[ovmContract].address.toString('hex')) {
                             addrName = ovmContract;
-                            scope = new Map([
-                                ['AddressResolver', 'addr-rslvr'],
-                                ['StateManager', 'state-mgr'],
-                                ['SafetyChecker', 'safety-chkr'],
-                                ['ExecutionManager', 'exe-mgr']
-                            ]).get(ovmContract) || ovmContract;
+                            scope =
+                                new Map([
+                                    ['AddressResolver', 'addr-rslvr'],
+                                    ['StateManager', 'state-mgr'],
+                                    ['SafetyChecker', 'safety-chkr'],
+                                    ['ExecutionManager', 'exe-mgr'],
+                                ]).get(ovmContract) || ovmContract;
                         }
                     }
                 }
@@ -359,7 +371,9 @@ var Interpreter = /** @class */ (function () {
             if (!!this._vm._contracts.ExecutionManager.address) {
                 if (target.equals(this._vm._contracts.ExecutionManager.address)) {
                     var _d = this._vm._contracts.ExecutionManager.decodeFunctionData(calldata), functionName = _d.functionName, functionArgs = _d.functionArgs;
-                    callLogger.log("CALL to ExecutionManager." + functionName + " with: " + functionArgs + " (raw w/o sighash): 0x" + calldata.slice(4).toString('hex') + ")");
+                    callLogger.log("CALL to ExecutionManager." + functionName + " with: " + functionArgs + " (raw w/o sighash): 0x" + calldata
+                        .slice(4)
+                        .toString('hex') + ")");
                 }
                 else {
                     callLogger.log("CALL to " + target.toString('hex') + " with data: \n0x" + calldata.toString('hex'));
@@ -376,7 +390,7 @@ var Interpreter = /** @class */ (function () {
             stack = new (Array.bind.apply(Array, __spread([void 0], info['stack'])))().reverse();
         }
         stepLogger.log("op:" + padToLengthIfPossible(opName, 9) + "stack:[  " + stack.map(function (stackEl) {
-            return '0x' + stackEl.toString("hex");
+            return '0x' + stackEl.toString('hex');
         }) + "], pc:0x" + info['pc'].toString(6));
         if (printThisMem) {
             memLogger.log("[" + ('0x' + Buffer.from(curMemory).toString('hex')) + "]");

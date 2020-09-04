@@ -134,7 +134,7 @@ function _runTx(opts) {
                      */
                     _b.sent();
                     basefee = tx.getBaseFee();
-                    gasLimit = new BN(tx.gasLimit);
+                    gasLimit = new BN(block.header.gasLimit);
                     if (gasLimit.lt(basefee)) {
                         throw new Error('base fee exceeds gas limit');
                     }
