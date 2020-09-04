@@ -107,7 +107,7 @@ async function _runTx(this: VM, opts: RunOvmTxOpts): Promise<RunTxResult> {
 
   // Validate gas limit against base fee
   const basefee = tx.getBaseFee()
-  const gasLimit = new BN(tx.gasLimit)
+  const gasLimit = new BN(block.header.gasLimit)
   if (gasLimit.lt(basefee)) {
     throw new Error('base fee exceeds gas limit')
   }
