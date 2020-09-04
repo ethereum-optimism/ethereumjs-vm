@@ -12,7 +12,7 @@ import { handlers as opHandlers, OpHandler } from './opFns'
 import Account from 'ethereumjs-account'
 import { env, off } from 'process'
 import { add } from 'lodash'
-import {InterpreterStep} from './interpreter'
+import { InterpreterStep } from './interpreter'
 
 const logger = new Logger('ethjs-ovm')
 
@@ -22,7 +22,7 @@ let gasOpts: any = {
   prevGasLeft: 0,
   prevDepth: 0,
   curDomain: '',
-  tracking: {}
+  tracking: {},
 }
 
 export default function logGas(info: InterpreterStep, _vm: any) {
@@ -49,14 +49,24 @@ export default function logGas(info: InterpreterStep, _vm: any) {
 
   if (curDepth !== gasOpts.prevDepth) {
     const gasConsumed = gasOpts.startGas - gasOpts.prevGasLeft
-    console.log(gasOpts.curDomain, 'at', gasOpts.prevDepth, '->', curAddress, 'at', curDepth, '- Used', gasConsumed, 'gas')
+    console.log(
+      gasOpts.curDomain,
+      'at',
+      gasOpts.prevDepth,
+      '->',
+      curAddress,
+      'at',
+      curDepth,
+      '- Used',
+      gasConsumed,
+      'gas',
+    )
     // track gas used in previous depth
-    if(!!gasOpts.tracking[gasOpts.curDomain]) {
+    if (!!gasOpts.tracking[gasOpts.curDomain]) {
       gasOpts.tracking[gasOpts.curDomain] += gasConsumed
     } else {
       gasOpts.tracking[gasOpts.curDomain] = gasConsumed
     }
-
 
     //get name of new current domain address
     gasOpts.startGas = info.gasLeft.toNumber()
@@ -65,12 +75,11 @@ export default function logGas(info: InterpreterStep, _vm: any) {
   }
   gasOpts.prevGasLeft = info.gasLeft.toNumber()
 
-
   if (['RETURN', 'REVERT', 'STOP', 'INVALID'].includes(opName)) {
-    // end of tx, log the gasUsed 
+    // end of tx, log the gasUsed
     if (curDepth === 0) {
       gasOpts.insideTx = false
       console.log('Finished tx!', gasOpts.tracking)
     }
-  }  
+  }
 }

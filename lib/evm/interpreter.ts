@@ -222,11 +222,10 @@ export default class Interpreter {
       }
     }
 
-
     if (env.DEBUG_OVM_GAS === 'true') {
       try {
         if (this._eei._env.isOvmCall) {
-         logGas(eventObj, this._vm)
+          logGas(eventObj, this._vm)
         }
       } catch (e) {
         logger.log(`Caught error logging VM step: ${JSON.stringify(e)}`)
