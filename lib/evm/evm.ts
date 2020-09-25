@@ -140,7 +140,7 @@ export default class EVM {
           gasUsed: new BN(0),
           execResult: {
             gasUsed: new BN(0),
-            returnValue: await this._vm.ovmStateManager.handleCall(message)
+            returnValue: await this._vm.ovmStateManager.handleCall(message),
           },
         } as EVMResult
       } else {
@@ -333,7 +333,7 @@ export default class EVM {
       block: this._block || new Block(),
       contract: await this._state.getAccount(message.to || zeros(32)),
       codeAddress: message.codeAddress,
-      originalTargetAddress: message.originalTargetAddress
+      originalTargetAddress: message.originalTargetAddress,
     }
     const eei = new EEI(env, this._state, this, this._vm._common, message.gasLimit.clone())
     if (message.selfdestruct) {

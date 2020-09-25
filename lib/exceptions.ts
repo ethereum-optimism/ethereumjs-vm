@@ -13,7 +13,7 @@ export enum ERROR {
   REFUND_EXHAUSTED = 'refund exhausted',
 
   // Custom variables
-  OVM_ERROR = 'target contract not reached'
+  OVM_ERROR = 'target contract not reached',
 }
 
 export class VmError {

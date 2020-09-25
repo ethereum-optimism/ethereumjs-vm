@@ -175,7 +175,7 @@ export default class VM extends AsyncEventEmitter {
 
     this.allowUnlimitedContractSize =
       opts.allowUnlimitedContractSize === undefined ? false : opts.allowUnlimitedContractSize
-    
+
     // OVM option setup.
     const ovmOpts = opts.ovmOpts || {}
     this.emGasLimit = ovmOpts.emGasLimit || 100_000_000
@@ -184,17 +184,17 @@ export default class VM extends AsyncEventEmitter {
     this.contracts = ovmOpts.contracts || {
       ovmExecutionManager: {
         address: Buffer.from(''),
-        addressHex: '0x'
+        addressHex: '0x',
       },
       ovmStateManager: {
         address: Buffer.from(''),
-        addressHex: '0x'
+        addressHex: '0x',
       },
     }
 
     // Always need an instance of this.
     this.ovmStateManager = new OvmStateManager({
-      vm: this
+      vm: this,
     })
 
     // We cache this promisified function as it's called from the main execution loop, and
@@ -226,29 +226,27 @@ export default class VM extends AsyncEventEmitter {
     this.contracts = {
       ovmExecutionManager: {
         address: Buffer.from(emAddress, 'hex'),
-        addressHex: '0x' + emAddress
+        addressHex: '0x' + emAddress,
       },
       ovmStateManager: {
         address: Buffer.from(smAddress, 'hex'),
-        addressHex: '0x' + smAddress
-      }
+        addressHex: '0x' + smAddress,
+      },
     }
 
     for (const [address, account] of Object.entries(this.dump.accounts)) {
-      await this.pStateManager.putAccount(
-        Buffer.from(address, 'hex'), new Account()
-      )
+      await this.pStateManager.putAccount(Buffer.from(address, 'hex'), new Account())
 
       await this.pStateManager.putContractCode(
         Buffer.from(address, 'hex'),
-        Buffer.from(account.code, 'hex')
+        Buffer.from(account.code, 'hex'),
       )
 
       for (const [key, val] of Object.entries(account.storage)) {
         await this.pStateManager.putContractStorage(
           Buffer.from(address, 'hex'),
           Buffer.from(key, 'hex'),
-          Buffer.from(val, 'hex')
+          Buffer.from(val, 'hex'),
         )
       }
     }
@@ -321,7 +319,7 @@ export default class VM extends AsyncEventEmitter {
       stateManager: this.stateManager.copy(),
       blockchain: this.blockchain,
       common: this._common,
-      ovmOpts: this.opts.ovmOpts
+      ovmOpts: this.opts.ovmOpts,
     })
   }
 }
