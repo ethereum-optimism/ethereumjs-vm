@@ -27,6 +27,9 @@ export interface Env {
   contract: Account
   // Different than address for DELEGATECALL and CALLCODE
   codeAddress: Buffer
+
+  // Custom variables
+  originalTargetAddress: Buffer
 }
 
 /**
@@ -402,6 +405,7 @@ export default class EEI {
       data: data,
       isStatic: this._env.isStatic,
       depth: this._env.depth + 1,
+      originalTargetAddress: this._env.originalTargetAddress,
     })
 
     return this._baseCall(msg)
@@ -420,6 +424,7 @@ export default class EEI {
       data: data,
       isStatic: this._env.isStatic,
       depth: this._env.depth + 1,
+      originalTargetAddress: this._env.originalTargetAddress,
     })
 
     return this._baseCall(msg)
@@ -439,6 +444,7 @@ export default class EEI {
       data: data,
       isStatic: true,
       depth: this._env.depth + 1,
+      originalTargetAddress: this._env.originalTargetAddress,
     })
 
     return this._baseCall(msg)
@@ -459,6 +465,7 @@ export default class EEI {
       isStatic: this._env.isStatic,
       delegatecall: true,
       depth: this._env.depth + 1,
+      originalTargetAddress: this._env.originalTargetAddress,
     })
 
     return this._baseCall(msg)
@@ -520,6 +527,7 @@ export default class EEI {
       salt: salt,
       depth: this._env.depth + 1,
       selfdestruct: selfdestruct,
+      originalTargetAddress: this._env.originalTargetAddress,
     })
 
     // empty the return data buffer

@@ -1,0 +1,283 @@
+{
+    "contractName": "FullStateManager",
+    "abi": [
+      {
+        "constant": false,
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "_ovmContractAddress",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "_codeContractAddress",
+            "type": "address"
+          }
+        ],
+        "name": "associateCodeContract",
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "constant": false,
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "_ovmContractAddress",
+            "type": "address"
+          }
+        ],
+        "name": "getCodeContractAddressFromOvmAddress",
+        "outputs": [
+          {
+            "internalType": "address",
+            "name": "",
+            "type": "address"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "constant": false,
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "_codeContractAddress",
+            "type": "address"
+          }
+        ],
+        "name": "getCodeContractBytecode",
+        "outputs": [
+          {
+            "internalType": "bytes",
+            "name": "codeContractBytecode",
+            "type": "bytes"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "constant": false,
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "_codeContractAddress",
+            "type": "address"
+          }
+        ],
+        "name": "getCodeContractHash",
+        "outputs": [
+          {
+            "internalType": "bytes32",
+            "name": "_codeContractHash",
+            "type": "bytes32"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "constant": false,
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "_codeContractAddress",
+            "type": "address"
+          }
+        ],
+        "name": "getOvmAddressFromCodeContractAddress",
+        "outputs": [
+          {
+            "internalType": "address",
+            "name": "",
+            "type": "address"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "constant": false,
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "_ovmContractAddress",
+            "type": "address"
+          }
+        ],
+        "name": "getOvmContractNonce",
+        "outputs": [
+          {
+            "internalType": "uint256",
+            "name": "",
+            "type": "uint256"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "constant": true,
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "_ovmContractAddress",
+            "type": "address"
+          }
+        ],
+        "name": "getOvmContractNonceView",
+        "outputs": [
+          {
+            "internalType": "uint256",
+            "name": "",
+            "type": "uint256"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "constant": false,
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "_ovmContractAddress",
+            "type": "address"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "_slot",
+            "type": "bytes32"
+          }
+        ],
+        "name": "getStorage",
+        "outputs": [
+          {
+            "internalType": "bytes32",
+            "name": "",
+            "type": "bytes32"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "constant": true,
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "_ovmContractAddress",
+            "type": "address"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "_slot",
+            "type": "bytes32"
+          }
+        ],
+        "name": "getStorageView",
+        "outputs": [
+          {
+            "internalType": "bytes32",
+            "name": "",
+            "type": "bytes32"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "constant": false,
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "_ovmContractAddress",
+            "type": "address"
+          }
+        ],
+        "name": "incrementOvmContractNonce",
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "constant": false,
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "_ovmContractAddress",
+            "type": "address"
+          }
+        ],
+        "name": "registerCreatedContract",
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "constant": false,
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "_ovmContractAddress",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "_value",
+            "type": "uint256"
+          }
+        ],
+        "name": "setOvmContractNonce",
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "constant": false,
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "_ovmContractAddress",
+            "type": "address"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "_slot",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "_value",
+            "type": "bytes32"
+          }
+        ],
+        "name": "setStorage",
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      }
+    ],
+    "bytecode": "0x608060405234801561001057600080fd5b50610580806100206000396000f3fe608060405234801561001057600080fd5b50600436106100cf5760003560e01c806367bb422e1161008c578063ac6c266611610066578063ac6c26661461017e578063d7b5555e14610191578063d909aa53146101b1578063dfcac77d146101c4576100cf565b806367bb422e146101455780636b8b57e114610158578063807de2351461016b576100cf565b80630e7d0fff146100d457806339e503ab146100fd5780633dec5d851461011257806349677085146101325780635f78dd86146100d457806362c510a314610132575b600080fd5b6100e76100e236600461035e565b6101d7565b6040516100f49190610499565b60405180910390f35b61011061010b3660046103ee565b6101f2565b005b61012561012036600461035e565b610216565b6040516100f4919061048b565b6100e76101403660046103be565b610234565b61011061015336600461035e565b61025d565b610110610166366004610384565b610260565b61012561017936600461035e565b6102a8565b61011061018c3660046103be565b6102c6565b6101a461019f36600461035e565b6102e2565b6040516100f491906104a7565b6101106101bf36600461035e565b610309565b6100e76101d236600461035e565b61032c565b6001600160a01b031660009081526001602052604090205490565b6001600160a01b039092166000908152602081815260408083209383529290522055565b6001600160a01b039081166000908152600260205260409020541690565b6001600160a01b0382166000908152602081815260408083208484529091529020545b92915050565b50565b6001600160a01b0391821660008181526002602090815260408083208054969095166001600160a01b0319968716811790955593825260039052919091208054909216179055565b6001600160a01b039081166000908152600360205260409020541690565b6001600160a01b03909116600090815260016020526040902055565b60408051603f833b908101601f191682019092528181529080600060208401853c50919050565b6001600160a01b0316600090815260016020819052604090912080549091019055565b60006060610339836102e2565b80516020909101209392505050565b803561025781610520565b803561025781610534565b60006020828403121561037057600080fd5b600061037c8484610348565b949350505050565b6000806040838503121561039757600080fd5b60006103a38585610348565b92505060206103b485828601610348565b9150509250929050565b600080604083850312156103d157600080fd5b60006103dd8585610348565b92505060206103b485828601610353565b60008060006060848603121561040357600080fd5b600061040f8686610348565b935050602061042086828701610353565b925050604061043186828701610353565b9150509250925092565b610444816104cc565b82525050565b610444816104d7565b600061045e826104bf565b61046881856104c3565b93506104788185602086016104e6565b61048181610516565b9093019392505050565b60208101610257828461043b565b60208101610257828461044a565b602080825281016104b88184610453565b9392505050565b5190565b90815260200190565b6000610257826104da565b90565b6001600160a01b031690565b60005b838110156105015781810151838201526020016104e9565b83811115610510576000848401525b50505050565b601f01601f191690565b610529816104cc565b811461025d57600080fd5b610529816104d756fea365627a7a7231582078d85385ce2d2bcfae3c4055bedfb19da2b7eacfdb01fa1e853b31dc6b773c556c6578706572696d656e74616cf564736f6c634300050f0040",
+    "deployedBytecode": "0x608060405234801561001057600080fd5b50600436106100cf5760003560e01c806367bb422e1161008c578063ac6c266611610066578063ac6c26661461017e578063d7b5555e14610191578063d909aa53146101b1578063dfcac77d146101c4576100cf565b806367bb422e146101455780636b8b57e114610158578063807de2351461016b576100cf565b80630e7d0fff146100d457806339e503ab146100fd5780633dec5d851461011257806349677085146101325780635f78dd86146100d457806362c510a314610132575b600080fd5b6100e76100e236600461035e565b6101d7565b6040516100f49190610499565b60405180910390f35b61011061010b3660046103ee565b6101f2565b005b61012561012036600461035e565b610216565b6040516100f4919061048b565b6100e76101403660046103be565b610234565b61011061015336600461035e565b61025d565b610110610166366004610384565b610260565b61012561017936600461035e565b6102a8565b61011061018c3660046103be565b6102c6565b6101a461019f36600461035e565b6102e2565b6040516100f491906104a7565b6101106101bf36600461035e565b610309565b6100e76101d236600461035e565b61032c565b6001600160a01b031660009081526001602052604090205490565b6001600160a01b039092166000908152602081815260408083209383529290522055565b6001600160a01b039081166000908152600260205260409020541690565b6001600160a01b0382166000908152602081815260408083208484529091529020545b92915050565b50565b6001600160a01b0391821660008181526002602090815260408083208054969095166001600160a01b0319968716811790955593825260039052919091208054909216179055565b6001600160a01b039081166000908152600360205260409020541690565b6001600160a01b03909116600090815260016020526040902055565b60408051603f833b908101601f191682019092528181529080600060208401853c50919050565b6001600160a01b0316600090815260016020819052604090912080549091019055565b60006060610339836102e2565b80516020909101209392505050565b803561025781610520565b803561025781610534565b60006020828403121561037057600080fd5b600061037c8484610348565b949350505050565b6000806040838503121561039757600080fd5b60006103a38585610348565b92505060206103b485828601610348565b9150509250929050565b600080604083850312156103d157600080fd5b60006103dd8585610348565b92505060206103b485828601610353565b60008060006060848603121561040357600080fd5b600061040f8686610348565b935050602061042086828701610353565b925050604061043186828701610353565b9150509250925092565b610444816104cc565b82525050565b610444816104d7565b600061045e826104bf565b61046881856104c3565b93506104788185602086016104e6565b61048181610516565b9093019392505050565b60208101610257828461043b565b60208101610257828461044a565b602080825281016104b88184610453565b9392505050565b5190565b90815260200190565b6000610257826104da565b90565b6001600160a01b031690565b60005b838110156105015781810151838201526020016104e9565b83811115610510576000848401525b50505050565b601f01601f191690565b610529816104cc565b811461025d57600080fd5b610529816104d756fea365627a7a7231582078d85385ce2d2bcfae3c4055bedfb19da2b7eacfdb01fa1e853b31dc6b773c556c6578706572696d656e74616cf564736f6c634300050f0040",
+    "linkReferences": {},
+    "deployedLinkReferences": {}
+  }
+  

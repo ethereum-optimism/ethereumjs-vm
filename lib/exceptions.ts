@@ -11,6 +11,9 @@ export enum ERROR {
   CREATE_COLLISION = 'create collision',
   STOP = 'stop',
   REFUND_EXHAUSTED = 'refund exhausted',
+
+  // Custom variables
+  OVM_ERROR = 'target contract not reached'
 }
 
 export class VmError {

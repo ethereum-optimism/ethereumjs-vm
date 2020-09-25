@@ -15,6 +15,7 @@ import TxContext from './txContext'
 import Message from './message'
 import EEI from './eei'
 import { default as Interpreter, InterpreterOpts, RunState } from './interpreter'
+import { fromHexString, toHexAddress } from '../ovm/utils/buffer-utils'
 
 const Block = require('ethereumjs-block')
 
@@ -101,6 +102,10 @@ export default class EVM {
    */
   _refund: BN
 
+  // Custom variables
+  _targetMessage: Message | undefined
+  _targetMessageResult: EVMResult | undefined
+
   constructor(vm: any, txContext: TxContext, block: any) {
     this._vm = vm
     this._state = this._vm.pStateManager
@@ -119,15 +124,60 @@ export default class EVM {
 
     await this._state.checkpoint()
 
+    if (message.depth === 0) {
+      message = message.toOvmMessage(this._vm, this._block || new Block())
+    }
+
+    let isTargetMessage = !this._targetMessage && message.isTargetMessage()
+    if (isTargetMessage) {
+      this._targetMessage = message
+    }
+
     let result
     if (message.to) {
-      result = await this._executeCall(message)
+      if (message.to.equals(this._vm.contracts.ovmStateManager.address)) {
+        result = {
+          gasUsed: new BN(0),
+          execResult: {
+            gasUsed: new BN(0),
+            returnValue: await this._vm.ovmStateManager.handleCall(message)
+          },
+        } as EVMResult
+      } else {
+        result = await this._executeCall(message)
+      }
     } else {
       result = await this._executeCreate(message)
     }
     // TODO: Move `gasRefund` to a tx-level result object
     // instead of `ExecResult`.
     result.execResult.gasRefund = this._refund.clone()
+
+    if (isTargetMessage) {
+      this._targetMessageResult = result
+    }
+
+    if (message.depth === 0) {
+      if (this._targetMessageResult) {
+        if (result.execResult.logs) {
+          result.execResult.logs = result.execResult.logs.filter(log => {
+            return !log[0].equals(this._vm.contracts.ovmExecutionManager.address)
+          })
+        }
+
+        result = {
+          ...result,
+          createdAddress: this._targetMessageResult.createdAddress,
+          execResult: {
+            ...result.execResult,
+            returnValue: this._targetMessageResult.execResult.returnValue,
+            exceptionError: this._targetMessageResult.execResult.exceptionError,
+          },
+        }
+      } else {
+        result.execResult.exceptionError = new VmError(ERROR.OVM_ERROR)
+      }
+    }
 
     const err = result.execResult.exceptionError
     if (err) {
@@ -283,6 +333,7 @@ export default class EVM {
       block: this._block || new Block(),
       contract: await this._state.getAccount(message.to || zeros(32)),
       codeAddress: message.codeAddress,
+      originalTargetAddress: message.originalTargetAddress
     }
     const eei = new EEI(env, this._state, this, this._vm._common, message.gasLimit.clone())
     if (message.selfdestruct) {
@@ -363,15 +414,14 @@ export default class EVM {
   }
 
   async _generateAddress(message: Message): Promise<Buffer> {
-    let addr
-    if (message.salt) {
-      addr = generateAddress2(message.caller, message.salt, message.code as Buffer)
-    } else {
-      const acc = await this._state.getAccount(message.caller)
-      const newNonce = new BN(acc.nonce).subn(1)
-      addr = generateAddress(message.caller, newNonce.toArrayLike(Buffer))
-    }
-    return addr
+    return fromHexString(
+      toHexAddress(
+        await this._vm.pStateManager.getContractStorage(
+          this._vm.contracts.ovmExecutionManager.address,
+          Buffer.from('00'.repeat(31) + '06', 'hex'),
+        ),
+      ),
+    )
   }
 
   async _reduceSenderBalance(account: Account, message: Message): Promise<void> {
