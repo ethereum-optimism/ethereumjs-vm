@@ -6,11 +6,7 @@ import VM from '../index'
 import Message from '../evm/message'
 import { fromHexString, toHexString } from './utils/buffer-utils'
 import { NULL_BYTES32 } from './utils/constants'
-import { Logger } from './utils/logger'
 import { iStateManager } from './contracts'
-
-// TODO: Add comments here
-const logger = new Logger('ethereumjs-ovm:ovm-state-manager')
 
 export interface OvmStateManagerOpts {
   vm: VM
@@ -44,10 +40,8 @@ export class OvmStateManager {
     const fragment = this._iface.getFunction(methodId)
     const functionArgs = this._iface.decodeFunctionData(fragment, toHexString(message.data))
 
-    //logger.log(`Calling function: ${fragment.name} with args ${functionArgs}`)
     const ret = await this._handlers[fragment.name](...functionArgs)
     const encodedRet = this._iface.encodeFunctionResult(fragment, ret)
-    //logger.log(`Got result: ${encodedRet}`)
 
     return fromHexString(encodedRet)
   }
