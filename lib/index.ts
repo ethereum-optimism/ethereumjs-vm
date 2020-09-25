@@ -322,4 +322,14 @@ export default class VM extends AsyncEventEmitter {
       ovmOpts: this.opts.ovmOpts,
     })
   }
+
+  getContractName(address: Buffer) {
+    if (address.equals(this.contracts.ovmExecutionManager.address)) {
+      return 'OVM_ExecutionManager'
+    } else if (address.equals(this.contracts.ovmStateManager.address)) {
+      return 'OVM_StateManager'
+    } else {
+      return `UNKNOWN CONTRACT (${'0x' + address.toString('hex')})`
+    }
+  }
 }

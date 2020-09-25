@@ -10,6 +10,13 @@ import { Opcode } from './opcodes'
 import { handlers as opHandlers, OpHandler } from './opFns'
 import Account from 'ethereumjs-account'
 
+import { Logger } from '../ovm/utils/logger'
+import { env } from 'process'
+import { toHexAddress, toHexString } from '../ovm/utils/buffer-utils'
+import { iExecutionManager } from '../ovm/contracts'
+
+const logger = new Logger('ethjs-ovm:interpreter')
+
 export interface InterpreterOpts {
   pc?: number
 }
@@ -55,6 +62,14 @@ export default class Interpreter {
   _state: PStateManager
   _runState: RunState
   _eei: EEI
+  _printNextMemory: boolean = false
+  _loggers: {
+    [depth: number]: {
+      callLogger: Logger
+      stepLogger: Logger
+      memLogger: Logger
+    }
+  }
 
   constructor(vm: any, eei: EEI) {
     this._vm = vm // TODO: remove when not needed
@@ -74,6 +89,8 @@ export default class Interpreter {
       stateManager: this._state._wrapped,
       eei: this._eei,
     }
+
+    this._loggers = {}
   }
 
   async run(code: Buffer, opts: InterpreterOpts = {}): Promise<InterpreterResult> {
@@ -189,6 +206,13 @@ export default class Interpreter {
       memoryWordCount: this._runState.memoryWordCount,
       codeAddress: this._eei._env.codeAddress,
     }
+
+    try {
+      this._logStep(eventObj)
+    } catch (err) {
+      logger.log(`STEP LOGGING ERROR: ${err.toString()}`)
+    }
+
     /**
      * The `step` event for trace output
      *
@@ -226,5 +250,87 @@ export default class Interpreter {
     }
 
     return jumps
+  }
+
+  _logStep(step: InterpreterStep): void {
+    if (!env.DEBUG?.includes(logger.namespace)) {
+      return
+    }
+
+    if (!(step.depth in this._loggers)) {
+      const contractName = this._vm.getContractName(step.address)
+      const description = step.depth === 0 ? 'OVM TX starts with' : 'EVM STEPS for'
+
+      const callLogger = new Logger(logger.namespace + ':calls')
+      const stepLogger = new Logger(callLogger.namespace + ':steps')
+      const memLogger = new Logger(callLogger.namespace + ':memory')
+
+      callLogger.open(`${description} ${contractName} at depth ${step.depth}`)
+
+      this._loggers[step.depth] = {
+        callLogger,
+        stepLogger,
+        memLogger,
+      }
+    }
+
+    const loggers = this._loggers[step.depth]
+    const stack = new Array(...step.stack).reverse()
+    const memory = step.memory
+    const op = step.opcode.name
+
+    if (op === 'RETURN' || op === 'REVERT') {
+      const offset = stack[0].toNumber()
+      const length = stack[1].toNumber()
+
+      const data = Buffer.from(memory.slice(offset, offset + length))
+
+      loggers.callLogger.log(`${op} with data: ${toHexString(data)}`)
+      loggers.callLogger.close()
+      delete this._loggers[step.depth]
+    } else if (op === 'CALL') {
+      const target = stack[1].toBuffer()
+      const offset = stack[3].toNumber()
+      const length = stack[4].toNumber()
+
+      const calldata = Buffer.from(memory.slice(offset, offset + length))
+
+      if (target.equals(this._vm.contracts.ovmExecutionManager.address)) {
+        const sighash = toHexString(calldata.slice(0, 4))
+        const fragment = iExecutionManager.getFunction(sighash)
+        const functionName = fragment.name
+        const functionArgs = iExecutionManager.decodeFunctionData(
+          fragment,
+          toHexString(calldata),
+        ) as any[]
+
+        loggers.callLogger.log(
+          `CALL to OVM_ExecutionManager.${functionName}\nDecoded calldata: ${functionArgs}\nEncoded calldata: ${toHexString(
+            calldata.slice(4),
+          )}`,
+        )
+      } else {
+        loggers.callLogger.log(
+          `CALL to ${toHexAddress(target)} with data:\n${toHexString(calldata)}`,
+        )
+      }
+    } else {
+      loggers.stepLogger.log(
+        `opcode: ${op.padEnd(20, ' ')}\npc: ${step.pc}\nstack: [${stack
+          .map((el, idx) => {
+            return `${idx}: ${toHexString(el)}`
+          })
+          .join('')}]\n`,
+      )
+
+      if (
+        this._printNextMemory ||
+        ['CALL', 'CREATE', 'CREATE2', 'STATICCALL', 'DELEGATECALL'].includes(op)
+      ) {
+        loggers.memLogger.log(`memory: [${toHexString(Buffer.from(memory))}]`)
+      }
+
+      this._printNextMemory = ['MSTORE', 'CALLDATACOPY', 'RETURNDATACOPY', 'CODECOPY'].includes(op)
+    }
   }
 }
