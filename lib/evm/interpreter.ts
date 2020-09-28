@@ -369,8 +369,8 @@ export default class Interpreter {
     if (printThisMem) {
       const memStr = Buffer.from(curMemory).toString('hex')
       let formattedMem = ''
-      for (let i = 0; i < memStr.length; i+=32) {
-        formattedMem += `0x${(i).toString(16)}:  ${memStr.slice(i, i + 32)}\n`
+      for (let i = 0; i < memStr.length; i += 32) {
+        formattedMem += `0x${i.toString(16)}:  ${memStr.slice(i, i + 32)}\n`
       }
       memLogger.log(`Memory: \n ${formattedMem}`)
     }
