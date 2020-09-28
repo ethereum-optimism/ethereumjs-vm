@@ -367,7 +367,12 @@ export default class Interpreter {
     )
 
     if (printThisMem) {
-      memLogger.log(`[${'0x' + Buffer.from(curMemory).toString('hex')}]`)
+      const memStr = Buffer.from(curMemory).toString('hex')
+      let formattedMem = ''
+      for (let i = 0; i < memStr.length; i+=32) {
+        formattedMem += `0x${(i).toString(16)}:  ${memStr.slice(i, i + 32)}\n`
+      }
+      memLogger.log(`Memory: \n ${formattedMem}`)
     }
   }
 
@@ -377,7 +382,6 @@ export default class Interpreter {
 
     for (let i = 0; i < code.length; i++) {
       const curOpCode = this.lookupOpInfo(code[i]).name
-
       // no destinations into the middle of PUSH
       if (curOpCode === 'PUSH') {
         i += code[i] - 0x5f
