@@ -129,11 +129,11 @@ async function _runTx(this: VM, opts: RunTxOpts): Promise<RunTxResult> {
     )
   }
   // Update from account's nonce and balance
-  fromAccount.nonce = toBuffer(new BN(fromAccount.nonce).addn(1))
-  fromAccount.balance = toBuffer(
-    new BN(fromAccount.balance).sub(new BN(tx.gasLimit).mul(new BN(tx.gasPrice))),
-  )
-  await state.putAccount(tx.getSenderAddress(), fromAccount)
+  // fromAccount.nonce = toBuffer(new BN(fromAccount.nonce).addn(1))
+  // fromAccount.balance = toBuffer(
+  //   new BN(fromAccount.balance).sub(new BN(tx.gasLimit).mul(new BN(tx.gasPrice))),
+  // )
+  // await state.putAccount(tx.getSenderAddress(), fromAccount)
 
   /*
    * Execute message
@@ -141,7 +141,7 @@ async function _runTx(this: VM, opts: RunTxOpts): Promise<RunTxResult> {
   const txContext = new TxContext(tx.gasPrice, tx.getSenderAddress())
   const message = new Message({
     caller: tx.getSenderAddress(),
-    gasLimit: gasLimit,
+    gasLimit: gasLimit.mul(new BN(5)), // TODO: Find a cleaner way to do this, it works for now though.
     to: tx.to.toString('hex') !== '' ? tx.to : undefined,
     value: tx.value,
     data: tx.data,
@@ -169,21 +169,21 @@ async function _runTx(this: VM, opts: RunTxOpts): Promise<RunTxResult> {
   results.amountSpent = results.gasUsed.mul(new BN(tx.gasPrice))
 
   // Update sender's balance
-  fromAccount = await state.getAccount(tx.getSenderAddress())
-  const finalFromBalance = new BN(tx.gasLimit)
-    .sub(results.gasUsed)
-    .mul(new BN(tx.gasPrice))
-    .add(new BN(fromAccount.balance))
-  fromAccount.balance = toBuffer(finalFromBalance)
-  await state.putAccount(toBuffer(tx.getSenderAddress()), fromAccount)
+  // fromAccount = await state.getAccount(tx.getSenderAddress())
+  // const finalFromBalance = new BN(tx.gasLimit)
+  //   .sub(results.gasUsed)
+  //   .mul(new BN(tx.gasPrice))
+  //   .add(new BN(fromAccount.balance))
+  // fromAccount.balance = toBuffer(finalFromBalance)
+  // await state.putAccount(toBuffer(tx.getSenderAddress()), fromAccount)
 
   // Update miner's balance
-  const minerAccount = await state.getAccount(block.header.coinbase)
+  // const minerAccount = await state.getAccount(block.header.coinbase)
   // add the amount spent on gas to the miner's account
-  minerAccount.balance = toBuffer(new BN(minerAccount.balance).add(results.amountSpent))
-  if (!new BN(minerAccount.balance).isZero()) {
-    await state.putAccount(block.header.coinbase, minerAccount)
-  }
+  // minerAccount.balance = toBuffer(new BN(minerAccount.balance).add(results.amountSpent))
+  // if (!new BN(minerAccount.balance).isZero()) {
+  //   await state.putAccount(block.header.coinbase, minerAccount)
+  // }
 
   /*
    * Cleanup accounts

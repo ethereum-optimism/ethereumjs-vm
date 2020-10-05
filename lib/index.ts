@@ -199,7 +199,22 @@ export default class VM extends AsyncEventEmitter {
 
     // We cache this promisified function as it's called from the main execution loop, and
     // promisifying each time has a huge performance impact.
-    this._emit = promisify(this.emit.bind(this))
+    const emit = promisify(this.emit.bind(this))
+    this._emit = async (topic: string, data: any): Promise<void> => {
+      if (data) {
+        const addresses = [data.address, data.to]
+        for (const address of addresses) {
+          if (address) {
+            const addr = address.toString('hex')
+            if (addr.startsWith('c0dec0dec0de') || addr.startsWith('deaddeaddead')) {
+              return
+            }
+          }
+        }
+      }
+
+      emit(topic, data)
+    }
   }
 
   async init(): Promise<void> {
