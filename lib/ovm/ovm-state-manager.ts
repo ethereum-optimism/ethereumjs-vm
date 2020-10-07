@@ -1,12 +1,12 @@
 /* External Imports */
 import BN = require('bn.js')
+import { BigNumber } from 'ethers'
 
 /* Internal Imports */
 import VM from '../index'
 import Message from '../evm/message'
 import { fromHexString, toHexString } from './utils/buffer-utils'
 import { NULL_BYTES32 } from './utils/constants'
-import { iStateManager } from './contracts'
 
 export interface OvmStateManagerOpts {
   vm: VM
@@ -14,24 +14,28 @@ export interface OvmStateManagerOpts {
 
 export class OvmStateManager {
   public vm: VM
-  private _iface = iStateManager
+  private _iface: any
   private _handlers: {
     [name: string]: any
   }
 
   constructor(opts: OvmStateManagerOpts) {
     this.vm = opts.vm
+    this._iface = this.vm.contracts.OVM_StateManager.iface
 
     this._handlers = {
-      associateCodeContract: this.associateCodeContract.bind(this),
-      setStorage: this.setStorage.bind(this),
-      getStorage: this.getStorage.bind(this),
-      getStorageView: this.getStorageView.bind(this),
-      getOvmContractNonce: this.getOvmContractNonce.bind(this),
-      getCodeContractBytecode: this.getCodeContractBytecode.bind(this),
-      registerCreatedContract: this.registerCreatedContract.bind(this),
-      incrementOvmContractNonce: this.incrementOvmContractNonce.bind(this),
-      getCodeContractAddressFromOvmAddress: this.getCodeContractAddressFromOvmAddress.bind(this),
+      hasAccount: this.hasAccount.bind(this),
+      hasEmptyAccount: this.hasEmptyAccount.bind(this),
+      setAccountNonce: this.setAccountNonce.bind(this),
+      getAccountNonce: this.getAccountNonce.bind(this),
+      getAccountEthAddress: this.getAccountEthAddress.bind(this),
+      getContractStorage: this.getContractStorage.bind(this),
+      hasContractStorage: this.hasContractStorage.bind(this),
+      putContractStorage: this.putContractStorage.bind(this),
+      testAndSetAccountLoaded: this.testAndSetAccountLoaded.bind(this),
+      testAndSetAccountChanged: this.testAndSetAccountChanged.bind(this),
+      testAndSetContractStorageLoaded: this.testAndSetContractStorageLoaded.bind(this),
+      testAndSetContractStorageChanged: this.testAndSetContractStorageChanged.bind(this),
     }
   }
 
@@ -40,61 +44,79 @@ export class OvmStateManager {
     const fragment = this._iface.getFunction(methodId)
     const functionArgs = this._iface.decodeFunctionData(fragment, toHexString(message.data))
 
-    const ret = await this._handlers[fragment.name](...functionArgs)
-    const encodedRet = this._iface.encodeFunctionResult(fragment, ret)
+    let ret: any
+    if (fragment.name in this._handlers) {
+      ret = await this._handlers[fragment.name](...functionArgs)
+      ret = (ret === null || ret === undefined) ? ret : [ret]
+    }
 
-    return fromHexString(encodedRet)
+    try {
+      console.log(`  ← Responding with: ${ret}`)
+      const encodedRet = this._iface.encodeFunctionResult(fragment, ret)
+      return fromHexString(encodedRet)
+    } catch (err) {
+      console.log(`Caught encoding error in ovmStateManager: ${err}`)
+      throw err
+    }
   }
 
-  async associateCodeContract(
-    ovmContractAddress: string,
-    codeContractAddress: string,
-  ): Promise<void> {
-    return
+  async hasAccount(address: string): Promise<boolean> {
+    return true
   }
 
-  async setStorage(ovmContractAddress: string, slot: string, value: string): Promise<void> {
+  async hasEmptyAccount(address: string): Promise<boolean> {
+    return true
+  }
+
+  async setAccountNonce(address: string, nonce: BigNumber): Promise<void> {
+    const account = await this.vm.pStateManager.getAccount(fromHexString(address))
+    account.nonce = (new BN(nonce.toNumber())).toArrayLike(Buffer)
+    return this.vm.pStateManager.putAccount(fromHexString(address), account)
+  }
+
+  async getAccountNonce(address: string): Promise<number> {
+    const account = await this.vm.pStateManager.getAccount(fromHexString(address))
+    return (new BN(account.nonce)).toNumber()
+  }
+
+  async getAccountEthAddress(address: string): Promise<string> {
+    return address
+  }
+
+  async getContractStorage(address: string, key: string): Promise<string> {
+    const ret = await this.vm.pStateManager.getContractStorage(
+      fromHexString(address),
+      fromHexString(key),
+    )
+
+    return ret.length ? toHexString(ret) : NULL_BYTES32
+  }
+
+  async hasContractStorage(address: string, key: string): Promise<boolean> {
+    return true
+  }
+
+  async putContractStorage(address: string, key: string, value: string): Promise<void> {
     return this.vm.pStateManager.putContractStorage(
-      fromHexString(ovmContractAddress),
-      fromHexString(slot),
+      fromHexString(address),
+      fromHexString(key),
       fromHexString(value),
     )
   }
 
-  async getStorage(ovmContractAddress: string, slot: string): Promise<[string]> {
-    return this.getStorageView(ovmContractAddress, slot)
+  async testAndSetAccountLoaded(address: string): Promise<boolean> {
+    return true
   }
 
-  async getStorageView(ovmContractAddress: string, slot: string): Promise<[string]> {
-    const ret = await this.vm.pStateManager.getContractStorage(
-      fromHexString(ovmContractAddress),
-      fromHexString(slot),
-    )
-
-    return [ret.length ? toHexString(ret) : NULL_BYTES32]
+  async testAndSetAccountChanged(address: string): Promise<boolean> {
+    return true
   }
 
-  async getOvmContractNonce(ovmContractAddress: string): Promise<[string]> {
-    const account = await this.vm.pStateManager.getAccount(fromHexString(ovmContractAddress))
-    return [account.nonce.length ? toHexString(account.nonce) : '0x00']
+  async testAndSetContractStorageLoaded(address: string, key: string): Promise<boolean> {
+    return true
   }
 
-  async getCodeContractBytecode(ovmContractAddress: string): Promise<[string]> {
-    const code = await this.vm.pStateManager.getContractCode(fromHexString(ovmContractAddress))
-    return [toHexString(code)]
-  }
-
-  async registerCreatedContract(ovmContractAddress: string): Promise<void> {
-    return
-  }
-
-  async incrementOvmContractNonce(ovmContractAddress: string): Promise<void> {
-    const account = await this.vm.pStateManager.getAccount(fromHexString(ovmContractAddress))
-    account.nonce = new BN(account.nonce).addn(1).toArrayLike(Buffer)
-    return this.vm.pStateManager.putAccount(fromHexString(ovmContractAddress), account)
-  }
-
-  async getCodeContractAddressFromOvmAddress(ovmContractAddress: string): Promise<[string]> {
-    return [ovmContractAddress]
+  async testAndSetContractStorageChanged(address: string, key: string): Promise<boolean> {
+    return true
   }
 }

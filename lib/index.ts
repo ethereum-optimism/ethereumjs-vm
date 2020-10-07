@@ -16,9 +16,16 @@ const promisify = require('util.promisify')
 const AsyncEventEmitter = require('async-eventemitter')
 const Trie = require('merkle-patricia-tree/secure.js')
 
+// Custom imports
+import { Interface } from '@ethersproject/abi'
+import { fromHexString } from './ovm/utils/buffer-utils'
+
 interface OVMContract {
+  name: string
   address: Buffer
   addressHex: string
+  code: string
+  iface: any
 }
 
 interface StorageDump {
@@ -26,16 +33,13 @@ interface StorageDump {
 }
 
 interface StateDump {
-  contracts: {
-    ovmExecutionManager: string
-    ovmStateManager: string
-  }
   accounts: {
-    [address: string]: {
-      balance: number
-      nonce: number
+    [name: string]: {
+      address: string
       code: string
+      codeHash: string
       storage: StorageDump
+      abi: any
     }
   }
 }
@@ -87,8 +91,7 @@ export interface VMOpts {
     emGasLimit?: number
     dump?: StateDump
     contracts?: {
-      ovmExecutionManager: OVMContract
-      ovmStateManager: OVMContract
+      [name: string]: OVMContract
     }
   }
 }
@@ -113,11 +116,10 @@ export default class VM extends AsyncEventEmitter {
   emGasLimit: number
   initialized: boolean
   dump: StateDump | undefined
-  contracts: {
-    ovmExecutionManager: OVMContract
-    ovmStateManager: OVMContract
-  }
   ovmStateManager: OvmStateManager
+  contracts: {
+    [name: string]: OVMContract
+  }
 
   /**
    * Instantiates a new [[VM]] Object.
@@ -181,15 +183,24 @@ export default class VM extends AsyncEventEmitter {
     this.emGasLimit = ovmOpts.emGasLimit || 100_000_000
     this.dump = ovmOpts.dump
     this.initialized = ovmOpts.initialized || false
-    this.contracts = ovmOpts.contracts || {
-      ovmExecutionManager: {
-        address: Buffer.from(''),
-        addressHex: '0x',
-      },
-      ovmStateManager: {
-        address: Buffer.from(''),
-        addressHex: '0x',
-      },
+
+    if (ovmOpts.contracts) {
+      this.contracts = ovmOpts.contracts
+    } else {
+      if (!this.dump) {
+        throw new Error('You must provide a state dump to initialize the OVM.')
+      }
+
+      this.contracts = {}
+      for (const [name, account] of Object.entries(this.dump.accounts)) {
+        this.contracts[name] = {
+          name,
+          address: fromHexString(account.address),
+          addressHex: account.address,
+          code: account.code,
+          iface: new Interface(account.abi)
+        }
+      }
     }
 
     // Always need an instance of this.
@@ -206,7 +217,7 @@ export default class VM extends AsyncEventEmitter {
         for (const address of addresses) {
           if (address) {
             const addr = address.toString('hex')
-            if (addr.startsWith('c0dec0dec0de') || addr.startsWith('deaddeaddead')) {
+            if (addr.startsWith('deaddeaddead')) {
               return
             }
           }
@@ -228,38 +239,17 @@ export default class VM extends AsyncEventEmitter {
 
     this.initialized = true
 
-    let emAddress = this.dump.contracts.ovmExecutionManager
-    if (emAddress.startsWith('0x')) {
-      emAddress = emAddress.slice(2)
-    }
-
-    let smAddress = this.dump.contracts.ovmStateManager
-    if (smAddress.startsWith('0x')) {
-      smAddress = smAddress.slice(2)
-    }
-
-    this.contracts = {
-      ovmExecutionManager: {
-        address: Buffer.from(emAddress, 'hex'),
-        addressHex: '0x' + emAddress,
-      },
-      ovmStateManager: {
-        address: Buffer.from(smAddress, 'hex'),
-        addressHex: '0x' + smAddress,
-      },
-    }
-
-    for (const [address, account] of Object.entries(this.dump.accounts)) {
-      await this.pStateManager.putAccount(Buffer.from(address, 'hex'), new Account())
+    for (const account of Object.values(this.dump.accounts)) {
+      await this.pStateManager.putAccount(fromHexString(account.address), new Account())
 
       await this.pStateManager.putContractCode(
-        Buffer.from(address, 'hex'),
-        Buffer.from(account.code, 'hex'),
+        fromHexString(account.address),
+        fromHexString(account.code),
       )
 
       for (const [key, val] of Object.entries(account.storage)) {
         await this.pStateManager.putContractStorage(
-          Buffer.from(address, 'hex'),
+          fromHexString(account.address),
           Buffer.from(key, 'hex'),
           Buffer.from(val, 'hex'),
         )
@@ -338,13 +328,15 @@ export default class VM extends AsyncEventEmitter {
     })
   }
 
-  getContractName(address: Buffer) {
-    if (address.equals(this.contracts.ovmExecutionManager.address)) {
-      return 'OVM_ExecutionManager'
-    } else if (address.equals(this.contracts.ovmStateManager.address)) {
-      return 'OVM_StateManager'
-    } else {
-      return `UNKNOWN CONTRACT (${'0x' + address.toString('hex')})`
-    }
+  getContract(address: Buffer): OVMContract | undefined {
+    return Object.values(this.contracts).find((contract) => {
+      return contract.address.equals(address)
+    })
+  }
+
+  getContractByName(name: string): OVMContract | undefined {
+    return Object.values(this.contracts).find((contract) => {
+      return contract.name === name
+    })
   }
 }

@@ -13,7 +13,6 @@ import Account from 'ethereumjs-account'
 import { Logger } from '../ovm/utils/logger'
 import { env } from 'process'
 import { toHexAddress, toHexString } from '../ovm/utils/buffer-utils'
-import { iExecutionManager } from '../ovm/contracts'
 
 const logger = new Logger('ethjs-ovm:interpreter')
 
@@ -295,11 +294,11 @@ export default class Interpreter {
 
       const calldata = Buffer.from(memory.slice(offset, offset + length))
 
-      if (target.equals(this._vm.contracts.ovmExecutionManager.address)) {
+      if (target.equals(this._vm.contracts.OVM_ExecutionManager.address)) {
         const sighash = toHexString(calldata.slice(0, 4))
-        const fragment = iExecutionManager.getFunction(sighash)
+        const fragment = this._vm.contracts.OVM_ExecutionManager.iface.getFunction(sighash)
         const functionName = fragment.name
-        const functionArgs = iExecutionManager.decodeFunctionData(
+        const functionArgs = this._vm.contracts.OVM_ExecutionManager.iface.decodeFunctionData(
           fragment,
           toHexString(calldata),
         ) as any[]

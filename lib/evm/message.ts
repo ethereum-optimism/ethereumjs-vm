@@ -3,7 +3,6 @@ import { PrecompileFunc } from './precompiles'
 
 // OVM imports
 import VM from '../index'
-import { iExecutionManager } from '../ovm/contracts'
 import { toHexString, fromHexString } from '../ovm/utils/buffer-utils'
 import { NULL_ADDRESS } from '../ovm/utils/constants'
 
@@ -56,24 +55,33 @@ export default class Message {
   }
 
   toOvmMessage(vm: VM, block: any): Message {
-    if (!vm.contracts.ovmExecutionManager.address) {
+    if (!vm.contracts.OVM_ExecutionManager.address) {
       throw new Error('Cannot create a message because the ExecutionManager does not exist.')
     }
 
-    const calldata = iExecutionManager.encodeFunctionData('executeTransaction', [
-      toHexString(new BN(block.header.timestamp).toBuffer()),
-      0,
-      this.to ? toHexString(this.to) : NULL_ADDRESS,
-      this.data,
-      toHexString(this.caller),
-      toHexString(this.caller),
-      true,
+    const calldata = vm.contracts.OVM_ExecutionManager.iface.encodeFunctionData('run', [
+      {
+        timestamp: (new BN(block.header.timestamp)).toNumber(),
+        number: (new BN(block.header.number)).toNumber(),
+        l1QueueOrigin: 0,
+        l1Txorigin: toHexString(this.caller),
+        entrypoint: toHexString(this.caller),
+        gasLimit: this.gasLimit.toNumber(),
+        data: vm.contracts.mockOVM_ECDSAContractAccount.iface.encodeFunctionData('execute', [
+          toHexString(this.data),
+          0,
+          0,
+          '0x' + '00'.repeat(32),
+          '0x' + '00'.repeat(32)
+        ]),
+      },
+      vm.contracts.OVM_StateManager.addressHex
     ])
 
     return new Message({
       ...this,
       ...{
-        to: vm.contracts.ovmExecutionManager.address,
+        to: vm.contracts.OVM_ExecutionManager.address,
         data: fromHexString(calldata),
         originalTargetAddress: this.to,
       },
