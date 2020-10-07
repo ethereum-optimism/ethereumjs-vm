@@ -131,7 +131,7 @@ export default class EVM {
       if (code.length === 0) {
         await this._state.putContractCode(
           message.caller,
-          fromHexString(this._vm.contracts.mockOVM_ECDSAContractAccount.code)
+          fromHexString(this._vm.contracts.mockOVM_ECDSAContractAccount.code),
         )
       }
 
@@ -146,8 +146,11 @@ export default class EVM {
     let result
     if (message.to) {
       const code = await this._state.getContractCode(message.to)
-      const isECDSAContractAccount = toHexString(code) === this._vm.contracts.mockOVM_ECDSAContractAccount.code
-      const target = isECDSAContractAccount ? this._vm.getContractByName('mockOVM_ECDSAContractAccount') : this._vm.getContract(message.to)
+      const isECDSAContractAccount =
+        toHexString(code) === this._vm.contracts.mockOVM_ECDSAContractAccount.code
+      const target = isECDSAContractAccount
+        ? this._vm.getContractByName('mockOVM_ECDSAContractAccount')
+        : this._vm.getContract(message.to)
 
       if (target) {
         let methodId = '0x' + message.data.slice(0, 4).toString('hex')
@@ -156,8 +159,14 @@ export default class EVM {
         try {
           fragment = target.iface.getFunction(methodId)
         } catch (err) {
-          console.error(`\nCaught decoding error for ${target.name} with data: ${toHexString(message.data)}, ${err}`)
-          console.error(`Attempting to try again with function parameters removed in sighash calculation.`)
+          console.error(
+            `\nCaught decoding error for ${target.name} with data: ${toHexString(
+              message.data,
+            )}, ${err}`,
+          )
+          console.error(
+            `Attempting to try again with function parameters removed in sighash calculation.`,
+          )
 
           let correctedMethodId: string | undefined
           for (const functionName of Object.keys(target.iface.functions)) {
@@ -176,23 +185,30 @@ export default class EVM {
           try {
             fragment = target.iface.getFunction(correctedMethodId)
             methodId = correctedMethodId
-            console.log(`Found a suitable function match: ${target.name}.${fragment.name}, continuing.`)
+            console.log(
+              `Found a suitable function match: ${target.name}.${fragment.name}, continuing.`,
+            )
           } catch (err) {
-            console.error(`Second decoding attempt failed for ${target.name} with data: ${toHexString(message.data)}, ${err}`)
+            console.error(
+              `Second decoding attempt failed for ${target.name} with data: ${toHexString(
+                message.data,
+              )}, ${err}`,
+            )
             throw err
           }
         }
 
-        message.data = Buffer.concat([
-          fromHexString(methodId),
-          message.data.slice(4)
-        ])
+        message.data = Buffer.concat([fromHexString(methodId), message.data.slice(4)])
 
         const functionArgs = target.iface.decodeFunctionData(fragment, toHexString(message.data))
 
         console.log(`\nCalling ${target.name}.${fragment.name} with args: ${functionArgs}`)
       } else {
-        console.log(`Calling unknown contract (${toHexString(message.to)}) with data: ${toHexString(message.data)}`)
+        console.log(
+          `Calling unknown contract (${toHexString(message.to)}) with data: ${toHexString(
+            message.data,
+          )}`,
+        )
       }
 
       if (target && target.name === 'OVM_StateManager') {

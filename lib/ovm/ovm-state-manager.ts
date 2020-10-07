@@ -47,7 +47,7 @@ export class OvmStateManager {
     let ret: any
     if (fragment.name in this._handlers) {
       ret = await this._handlers[fragment.name](...functionArgs)
-      ret = (ret === null || ret === undefined) ? ret : [ret]
+      ret = ret === null || ret === undefined ? ret : [ret]
     }
 
     try {
@@ -70,13 +70,13 @@ export class OvmStateManager {
 
   async setAccountNonce(address: string, nonce: BigNumber): Promise<void> {
     const account = await this.vm.pStateManager.getAccount(fromHexString(address))
-    account.nonce = (new BN(nonce.toNumber())).toArrayLike(Buffer)
+    account.nonce = new BN(nonce.toNumber()).toArrayLike(Buffer)
     return this.vm.pStateManager.putAccount(fromHexString(address), account)
   }
 
   async getAccountNonce(address: string): Promise<number> {
     const account = await this.vm.pStateManager.getAccount(fromHexString(address))
-    return (new BN(account.nonce)).toNumber()
+    return new BN(account.nonce).toNumber()
   }
 
   async getAccountEthAddress(address: string): Promise<string> {

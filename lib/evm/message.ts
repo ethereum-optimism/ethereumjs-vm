@@ -61,8 +61,8 @@ export default class Message {
 
     const calldata = vm.contracts.OVM_ExecutionManager.iface.encodeFunctionData('run', [
       {
-        timestamp: (new BN(block.header.timestamp)).toNumber(),
-        number: (new BN(block.header.number)).toNumber(),
+        timestamp: new BN(block.header.timestamp).toNumber(),
+        number: new BN(block.header.number).toNumber(),
         l1QueueOrigin: 0,
         l1Txorigin: toHexString(this.caller),
         entrypoint: toHexString(this.caller),
@@ -72,10 +72,10 @@ export default class Message {
           0,
           0,
           '0x' + '00'.repeat(32),
-          '0x' + '00'.repeat(32)
+          '0x' + '00'.repeat(32),
         ]),
       },
-      vm.contracts.OVM_StateManager.addressHex
+      vm.contracts.OVM_StateManager.addressHex,
     ])
 
     return new Message({
