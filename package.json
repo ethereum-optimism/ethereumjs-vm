@@ -1,6 +1,6 @@
 {
-  "name": "ethereumjs-ovm",
-  "version": "4.2.0",
+  "name": "@eth-optimism/ethereumjs-vm",
+  "version": "4.2.0-alpha.0",
   "description": "An Ethereum VM implementation",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

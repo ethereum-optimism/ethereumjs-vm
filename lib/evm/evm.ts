@@ -155,52 +155,54 @@ export default class EVM {
       if (target) {
         let methodId = '0x' + message.data.slice(0, 4).toString('hex')
 
-        let fragment: any
-        try {
-          fragment = target.iface.getFunction(methodId)
-        } catch (err) {
-          console.error(
-            `\nCaught decoding error for ${target.name} with data: ${toHexString(
-              message.data,
-            )}, ${err}`,
-          )
-          console.error(
-            `Attempting to try again with function parameters removed in sighash calculation.`,
-          )
+        let fragment = target.iface.getFunction(methodId)
 
-          let correctedMethodId: string | undefined
-          for (const functionName of Object.keys(target.iface.functions)) {
-            const possibleMethodId = ethers.utils.id(functionName.split('(')[0] + '()').slice(0, 10)
-            if (possibleMethodId === methodId) {
-              correctedMethodId = ethers.utils.id(functionName).slice(0, 10)
-              break
-            }
-          }
+        // try {
+        //   fragment = target.iface.getFunction(methodId)
+        // } catch (err) {
+        //   console.error(
+        //     `\nCaught decoding error for ${target.name} with data: ${toHexString(
+        //       message.data,
+        //     )}, ${err}`,
+        //   )
+        //   console.error(
+        //     `Attempting to try again with function parameters removed in sighash calculation.`,
+        //   )
 
-          if (!correctedMethodId) {
-            console.error(`Cannot find a suitable function match, throwing.`)
-            throw err
-          }
+        //   let correctedMethodId: string | undefined
+        //   for (const functionName of Object.keys(target.iface.functions)) {
+        //     const possibleMethodId = ethers.utils.id(functionName.split('(')[0] + '()').slice(0, 10)
+        //     if (possibleMethodId === methodId) {
+        //       correctedMethodId = ethers.utils.id(functionName).slice(0, 10)
+        //       break
+        //     }
+        //   }
 
-          try {
-            fragment = target.iface.getFunction(correctedMethodId)
-            methodId = correctedMethodId
-            console.log(
-              `Found a suitable function match: ${target.name}.${fragment.name}, continuing.`,
-            )
-          } catch (err) {
-            console.error(
-              `Second decoding attempt failed for ${target.name} with data: ${toHexString(
-                message.data,
-              )}, ${err}`,
-            )
-            throw err
-          }
-        }
+        //   if (!correctedMethodId) {
+        //     console.error(`Cannot find a suitable function match, throwing.`)
+        //     throw err
+        //   }
+
+        //   try {
+        //     fragment = target.iface.getFunction(correctedMethodId)
+        //     methodId = correctedMethodId
+        //     console.log(
+        //       `Found a suitable function match: ${target.name}.${fragment.name}, continuing.`,
+        //     )
+        //   } catch (err) {
+        //     console.error(
+        //       `Second decoding attempt failed for ${target.name} with data: ${toHexString(
+        //         message.data,
+        //       )}, ${err}`,
+        //     )
+        //     throw err
+        //   }
+        // }
 
         message.data = Buffer.concat([fromHexString(methodId), message.data.slice(4)])
-
+        console.log(`BEGIN: POTAYTOES, data is: ${toHexString(message.data)}, target is: ${toHexAddress(message.to)}`)
         const functionArgs = target.iface.decodeFunctionData(fragment, toHexString(message.data))
+        console.log('END: POTAYTOES')
 
         console.log(`\nCalling ${target.name}.${fragment.name} with args: ${functionArgs}`)
       } else {
