@@ -13,8 +13,9 @@ import Account from 'ethereumjs-account'
 import { Logger } from '../ovm/utils/logger'
 import { env } from 'process'
 import { toHexAddress, toHexString } from '../ovm/utils/buffer-utils'
+import { info } from 'console'
 
-const logger = new Logger('ethjs-ovm:interpreter')
+const logger = new Logger('js-ovm:intrp')
 
 export interface InterpreterOpts {
   pc?: number
@@ -67,8 +68,12 @@ export default class Interpreter {
       callLogger: Logger
       stepLogger: Logger
       memLogger: Logger
+      memSizeLogger: Logger
+      gasLogger: Logger
     }
   }
+  _firstStep: boolean
+  _initialGas: number
 
   constructor(vm: any, eei: EEI) {
     this._vm = vm // TODO: remove when not needed
@@ -90,6 +95,8 @@ export default class Interpreter {
     }
 
     this._loggers = {}
+    this._firstStep = true
+    this._initialGas = 0
   }
 
   async run(code: Buffer, opts: InterpreterOpts = {}): Promise<InterpreterResult> {
@@ -252,17 +259,26 @@ export default class Interpreter {
   }
 
   _logStep(step: InterpreterStep): void {
-    if (!env.DEBUG?.includes(logger.namespace) && !logger.enabled) {
+    if (env.DEBUG_OVM != 'true') {
       return
     }
 
+    if (this._firstStep && step.depth == 0) {
+      this._initialGas = step.gasLeft.toNumber()
+      this._firstStep = false
+    }
+
     if (!(step.depth in this._loggers)) {
-      const contractName = this._vm.getContractName(step.address)
+      const contractName = this._vm.getContract(step.address)
       const description = step.depth === 0 ? 'OVM TX starts with' : 'EVM STEPS for'
 
-      const callLogger = new Logger(logger.namespace + ':calls')
+      const addressStart = step.address.slice(0, 2).toString('hex')
+      const addressEnd = step.address.slice(step.address.length - 4).toString('hex')
+      const callLogger = new Logger(logger.namespace + ':0x' + addressStart + addressEnd + '..' + ':calls')
       const stepLogger = new Logger(callLogger.namespace + ':steps')
       const memLogger = new Logger(callLogger.namespace + ':memory')
+      const memSizeLogger = new Logger(callLogger.namespace + ':memorysize')
+      const gasLogger = new Logger(callLogger.namespace + ':steps')
 
       callLogger.open(`${description} ${contractName} at depth ${step.depth}`)
 
@@ -270,6 +286,8 @@ export default class Interpreter {
         callLogger,
         stepLogger,
         memLogger,
+        gasLogger,
+        memSizeLogger
       }
     }
 
@@ -279,9 +297,12 @@ export default class Interpreter {
     const op = step.opcode.name
 
     if (op === 'RETURN' || op === 'REVERT') {
+      if (step.depth === 0) {
+        loggers.gasLogger.log(`OVM tx completed having used ${this._initialGas - step.gasLeft.toNumber()} gas.`)
+      }
+
       const offset = stack[0].toNumber()
       const length = stack[1].toNumber()
-
       const data = Buffer.from(memory.slice(offset, offset + length))
 
       loggers.callLogger.log(`${op} with data: ${toHexString(data)}`)
@@ -298,10 +319,22 @@ export default class Interpreter {
         const sighash = toHexString(calldata.slice(0, 4))
         const fragment = this._vm.contracts.OVM_ExecutionManager.iface.getFunction(sighash)
         const functionName = fragment.name
+        loggers.callLogger.log(`trying the decodeFunctionData for ${functionName}, raw it is: 0x${calldata.toString('hex')}`)
+        loggers.callLogger.log(`the ideal encoding would be:${
+          this._vm.contracts.OVM_ExecutionManager.iface.encodeFunctionData(
+            fragment,
+            [
+              1234,
+              '0x1234123412341234123412341234123412341234',
+              '0x6789678967896789'
+            ],
+          )
+        }`)
         const functionArgs = this._vm.contracts.OVM_ExecutionManager.iface.decodeFunctionData(
           fragment,
           toHexString(calldata),
         ) as any[]
+        loggers.callLogger.log(`decoded it WUT`)
 
         loggers.callLogger.log(
           `CALL to OVM_ExecutionManager.${functionName}\nDecoded calldata: ${functionArgs}\nEncoded calldata: ${toHexString(
@@ -315,9 +348,9 @@ export default class Interpreter {
       }
     } else {
       loggers.stepLogger.log(
-        `opcode: ${op.padEnd(20, ' ')}\npc: ${step.pc}\nstack: [${stack
+        `opcode: ${op.padEnd(10, ' ')}  pc: ${step.pc}\nstack: [${stack
           .map((el, idx) => {
-            return `${idx}: ${toHexString(el)}`
+            return ` ${idx}: ${toHexString(el)}`
           })
           .join('')}]\n`,
       )
@@ -326,7 +359,11 @@ export default class Interpreter {
         this._printNextMemory ||
         ['CALL', 'CREATE', 'CREATE2', 'STATICCALL', 'DELEGATECALL'].includes(op)
       ) {
-        loggers.memLogger.log(`memory: [${toHexString(Buffer.from(memory))}]`)
+        const memsize = memory.length
+        if (memsize > 20000) {
+          loggers.memSizeLogger.log(`MSIZE of ${memsize} in memory modifying step.`)
+        }
+        loggers.memLogger.log(`$[${toHexString(Buffer.from(memory))}]`)
       }
 
       this._printNextMemory = ['MSTORE', 'CALLDATACOPY', 'RETURNDATACOPY', 'CODECOPY'].includes(op)
