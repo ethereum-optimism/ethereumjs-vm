@@ -152,6 +152,8 @@ export default class EVM {
         ? this._vm.getContractByName('mockOVM_ECDSAContractAccount')
         : this._vm.getContract(message.to)
 
+      if (isECDSAContractAccount) { console.log(`account code is: ${toHexString(code)}`) }
+
       if (target) {
         let methodId = '0x' + message.data.slice(0, 4).toString('hex')
 
@@ -199,12 +201,11 @@ export default class EVM {
         //   }
         // }
 
-        message.data = Buffer.concat([fromHexString(methodId), message.data.slice(4)])
-        console.log(`BEGIN: POTAYTOES, data is: ${toHexString(message.data)}, target is: ${toHexAddress(message.to)}`)
+        // message.data = Buffer.concat([fromHexString(methodId), message.data.slice(4)])
         const functionArgs = target.iface.decodeFunctionData(fragment, toHexString(message.data))
-        console.log('END: POTAYTOES')
 
         console.log(`\nCalling ${target.name}.${fragment.name} with args: ${functionArgs}`)
+        console.log(`as raw data this is: ${toHexString(message.data)}`)
       } else {
         console.log(
           `Calling unknown contract (${toHexString(message.to)}) with data: ${toHexString(
@@ -218,7 +219,7 @@ export default class EVM {
           gasUsed: new BN(0),
           execResult: {
             gasUsed: new BN(0),
-            returnValue: await this._vm.ovmStateManager.handleCall(message),
+            returnValue: await this._vm.ovmStateManager.handleCall(message, this._tx),
           },
         } as EVMResult
       } else {
@@ -227,6 +228,8 @@ export default class EVM {
     } else {
       result = await this._executeCreate(message)
     }
+
+    console.log(`call result was: ${JSON.stringify(result.execResult.returnValue)}`)
 
     // TODO: Move `gasRefund` to a tx-level result object
     // instead of `ExecResult`.
@@ -244,16 +247,26 @@ export default class EVM {
           })
         }
 
+        // OVM reverts have some flag-related metadata before the revert data--strip this out for providers etc.
+        let returnData: Buffer = this._targetMessageResult.execResult.returnValue
+        if (
+          !!this._targetMessageResult.execResult.exceptionError
+          && returnData.byteLength >= 160
+        ) {
+          returnData = returnData.slice(160)
+        }
+
         result = {
           ...result,
           createdAddress: this._targetMessageResult.createdAddress,
           execResult: {
             ...result.execResult,
-            returnValue: this._targetMessageResult.execResult.returnValue,
+            returnValue: returnData,
             exceptionError: this._targetMessageResult.execResult.exceptionError,
           },
         }
       } else {
+        // todo: break out error cases and surface here
         result.execResult.exceptionError = new VmError(ERROR.OVM_ERROR)
       }
     }

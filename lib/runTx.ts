@@ -87,6 +87,7 @@ export default async function runTx(this: VM, opts: RunTxOpts): Promise<RunTxRes
 }
 
 async function _runTx(this: VM, opts: RunTxOpts): Promise<RunTxResult> {
+  console.log('in custom')
   // Skip these checks because we don't have these concepts in the OVM.
   opts.skipBalance = true
   opts.skipNonce = true

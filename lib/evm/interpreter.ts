@@ -73,7 +73,7 @@ export default class Interpreter {
     }
   }
   _firstStep: boolean
-  _initialGas: number
+  _initialGas: BN
 
   constructor(vm: any, eei: EEI) {
     this._vm = vm // TODO: remove when not needed
@@ -96,7 +96,7 @@ export default class Interpreter {
 
     this._loggers = {}
     this._firstStep = true
-    this._initialGas = 0
+    this._initialGas = new BN(0)
   }
 
   async run(code: Buffer, opts: InterpreterOpts = {}): Promise<InterpreterResult> {
@@ -264,7 +264,7 @@ export default class Interpreter {
     }
 
     if (this._firstStep && step.depth == 0) {
-      this._initialGas = step.gasLeft.toNumber()
+      this._initialGas = step.gasLeft
       this._firstStep = false
     }
 
@@ -274,7 +274,7 @@ export default class Interpreter {
 
       const addressStart = step.address.slice(0, 2).toString('hex')
       const addressEnd = step.address.slice(step.address.length - 4).toString('hex')
-      const callLogger = new Logger(logger.namespace + ':0x' + addressStart + addressEnd + '..' + ':calls')
+      const callLogger = new Logger(logger.namespace + ':0x' + addressStart + '..' + addressEnd + ':calls')
       const stepLogger = new Logger(callLogger.namespace + ':steps')
       const memLogger = new Logger(callLogger.namespace + ':memory')
       const memSizeLogger = new Logger(callLogger.namespace + ':memorysize')
@@ -298,7 +298,7 @@ export default class Interpreter {
 
     if (op === 'RETURN' || op === 'REVERT') {
       if (step.depth === 0) {
-        loggers.gasLogger.log(`OVM tx completed having used ${this._initialGas - step.gasLeft.toNumber()} gas.`)
+        loggers.gasLogger.log(`OVM tx completed having used ${this._initialGas.sub(step.gasLeft).toString()} gas.`)
       }
 
       const offset = stack[0].toNumber()
@@ -319,17 +319,17 @@ export default class Interpreter {
         const sighash = toHexString(calldata.slice(0, 4))
         const fragment = this._vm.contracts.OVM_ExecutionManager.iface.getFunction(sighash)
         const functionName = fragment.name
-        loggers.callLogger.log(`trying the decodeFunctionData for ${functionName}, raw it is: 0x${calldata.toString('hex')}`)
-        loggers.callLogger.log(`the ideal encoding would be:${
-          this._vm.contracts.OVM_ExecutionManager.iface.encodeFunctionData(
-            fragment,
-            [
-              1234,
-              '0x1234123412341234123412341234123412341234',
-              '0x6789678967896789'
-            ],
-          )
-        }`)
+        // loggers.callLogger.log(`trying the decodeFunctionData for ${functionName}, raw it is: 0x${calldata.toString('hex')}`)
+        // loggers.callLogger.log(`the ideal encoding would be:${
+        //   this._vm.contracts.OVM_ExecutionManager.iface.encodeFunctionData(
+        //     fragment,
+        //     [
+        //       1234,
+        //       '0x1234123412341234123412341234123412341234',
+        //       '0x6789678967896789'
+        //     ],
+        //   )
+        // }`)
         const functionArgs = this._vm.contracts.OVM_ExecutionManager.iface.decodeFunctionData(
           fragment,
           toHexString(calldata),
@@ -348,7 +348,7 @@ export default class Interpreter {
       }
     } else {
       loggers.stepLogger.log(
-        `opcode: ${op.padEnd(10, ' ')}  pc: ${step.pc}\nstack: [${stack
+        `opcode: ${op.padEnd(10, ' ')}  pc: ${step.pc.toString().padEnd(10, ' ')} gasLeft: ${step.gasLeft.toString()}\nstack: [${stack
           .map((el, idx) => {
             return ` ${idx}: ${toHexString(el)}`
           })
