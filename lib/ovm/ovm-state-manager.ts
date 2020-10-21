@@ -55,7 +55,6 @@ export class OvmStateManager {
     }
 
     try {
-      console.log(`  ← Responding with: ${ret}`)
       const encodedRet = this._iface.encodeFunctionResult(fragment, ret)
       return fromHexString(encodedRet)
     } catch (err) {

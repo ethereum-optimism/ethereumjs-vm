@@ -214,7 +214,7 @@ export default class Interpreter {
     }
 
     try {
-      this._logStep(eventObj)
+      await this._logStep(eventObj)
     } catch (err) {
       logger.log(`STEP LOGGING ERROR: ${err.toString()}`)
     }
@@ -258,9 +258,9 @@ export default class Interpreter {
     return jumps
   }
 
-  _logStep(step: InterpreterStep): void {
+  async _logStep(step: InterpreterStep): Promise<void> {
     if (env.DEBUG_OVM != 'true') {
-      return
+      return 
     }
 
     if (this._firstStep && step.depth == 0) {
@@ -315,37 +315,58 @@ export default class Interpreter {
 
       const calldata = Buffer.from(memory.slice(offset, offset + length))
 
-      if (target.equals(this._vm.contracts.OVM_ExecutionManager.address)) {
-        const sighash = toHexString(calldata.slice(0, 4))
-        const fragment = this._vm.contracts.OVM_ExecutionManager.iface.getFunction(sighash)
-        const functionName = fragment.name
-        // loggers.callLogger.log(`trying the decodeFunctionData for ${functionName}, raw it is: 0x${calldata.toString('hex')}`)
-        // loggers.callLogger.log(`the ideal encoding would be:${
-        //   this._vm.contracts.OVM_ExecutionManager.iface.encodeFunctionData(
-        //     fragment,
-        //     [
-        //       1234,
-        //       '0x1234123412341234123412341234123412341234',
-        //       '0x6789678967896789'
-        //     ],
-        //   )
-        // }`)
-        const functionArgs = this._vm.contracts.OVM_ExecutionManager.iface.decodeFunctionData(
-          fragment,
-          toHexString(calldata),
-        ) as any[]
-        loggers.callLogger.log(`decoded it WUT`)
 
-        loggers.callLogger.log(
-          `CALL to OVM_ExecutionManager.${functionName}\nDecoded calldata: ${functionArgs}\nEncoded calldata: ${toHexString(
-            calldata.slice(4),
-          )}`,
-        )
+
+      const code = await this._state.getContractCode(target)
+      const isECDSAContractAccount =
+        toHexString(code) === this._vm.contracts.mockOVM_ECDSAContractAccount.code
+      const targetContract = isECDSAContractAccount
+        ? this._vm.getContractByName('mockOVM_ECDSAContractAccount')
+        : this._vm.getContract(target)
+
+      if (targetContract) {
+        let methodId = '0x' + calldata.slice(0, 4).toString('hex')
+        let fragment = targetContract.iface.getFunction(methodId)
+        
+        let logString
+        try {
+          const decodedArgs = targetContract.iface.decodeFunctionData(fragment, toHexString(calldata))
+          logString = `CALL to ${targetContract.name}.${fragment.name} with args: ${decodedArgs}`
+        } catch {
+          logString = `CALL to ${targetContract.name}.${fragment.name} with raw data (failed to decode): 0x${calldata.toString('hex')}`
+        }
+
+        loggers.callLogger.log(logString)
       } else {
         loggers.callLogger.log(
-          `CALL to ${toHexAddress(target)} with data:\n${toHexString(calldata)}`,
+          `CALL to unknown contract (${toHexString(target)}) with data: ${toHexString(
+            calldata
+          )}`,
         )
       }
+
+
+
+
+      // if (target.equals(this._vm.contracts.OVM_ExecutionManager.address)) {
+      //   const sighash = toHexString(calldata.slice(0, 4))
+      //   const fragment = this._vm.contracts.OVM_ExecutionManager.iface.getFunction(sighash)
+      //   const functionName = fragment.name
+      //   const functionArgs = this._vm.contracts.OVM_ExecutionManager.iface.decodeFunctionData(
+      //     fragment,
+      //     toHexString(calldata),
+      //   ) as any[]
+
+      //   loggers.callLogger.log(
+      //     `CALL to OVM_ExecutionManager.${functionName}\nDecoded calldata: ${functionArgs}\nEncoded calldata: ${toHexString(
+      //       calldata.slice(4),
+      //     )}`,
+      //   )
+      // } else {
+      //   loggers.callLogger.log(
+      //     `CALL to ${toHexAddress(target)} with data:\n${toHexString(calldata)}`,
+      //   )
+      // }
     } else {
       loggers.stepLogger.log(
         `opcode: ${op.padEnd(10, ' ')}  pc: ${step.pc.toString().padEnd(10, ' ')} gasLeft: ${step.gasLeft.toString()}\nstack: [${stack
