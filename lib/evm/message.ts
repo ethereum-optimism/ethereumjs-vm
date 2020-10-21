@@ -59,12 +59,7 @@ export default class Message {
       throw new Error('Cannot create a message because the ExecutionManager does not exist.')
     }
 
-    console.log(`gaslimit is ${this.gasLimit.toString('hex')}`)
-    console.log(`ovm gaslimit is ${vm.emGasLimit}`)
-
     const notTooBigGasLimit = BN.min(this.gasLimit, new BN(vm.emGasLimit))
-
-    console.log(`using gasLimit ${toHexString(notTooBigGasLimit.toBuffer())}`)
 
     const calldata = vm.contracts.OVM_ExecutionManager.iface.encodeFunctionData('run', [
       {
