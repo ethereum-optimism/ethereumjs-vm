@@ -505,7 +505,7 @@ export default class EVM {
   async _generateAddress(message: Message): Promise<Buffer> {
     return fromHexString(
       toHexAddress(
-        await this._vm.pStateManager.getContractStorage(
+        await this._state.getContractStorage(
           this._vm.contracts.OVM_ExecutionManager.address,
           Buffer.from('00'.repeat(31) + '0f', 'hex'),
         ),
