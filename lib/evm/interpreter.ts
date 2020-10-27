@@ -272,9 +272,9 @@ export default class Interpreter {
       const contractName = this._vm.getContract(step.address)
       const description = step.depth === 0 ? 'OVM TX starts with' : 'EVM STEPS for'
 
-      const addressStart = step.address.slice(0, 2).toString('hex')
-      const addressEnd = step.address.slice(step.address.length - 4).toString('hex')
-      const callLogger = new Logger(logger.namespace + ':0x' + addressStart + '..' + addressEnd + ':calls')
+      const addressStart = step.address.slice(0, 3).toString('hex')
+      const addressEnd = step.address.slice(step.address.length - 3).toString('hex')
+      const callLogger = new Logger(logger.namespace + ':0x' + addressStart + '..' + addressEnd + ':d' + step.depth + ':calls')
       const stepLogger = new Logger(callLogger.namespace + ':steps')
       const memLogger = new Logger(callLogger.namespace + ':memory')
       const memSizeLogger = new Logger(callLogger.namespace + ':memorysize')

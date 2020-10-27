@@ -107,6 +107,7 @@ export default class EVM {
   // Custom variables
   _targetMessage: Message | undefined
   _targetMessageResult: EVMResult | undefined
+  _accountMessageResult: EVMResult | undefined
 
   constructor(vm: any, txContext: TxContext, block: any) {
     this._vm = vm
@@ -235,6 +236,11 @@ export default class EVM {
       this._targetMessageResult = result
     }
 
+    // if (message.depth === 1 && (await this._state.getContractCode(message.to)).toString('hex') == this._vm.contracts.OVM_ECDSAContractAccount.code.toString('hex')) {
+    //   console.log(`found and set EOA acct message`)
+    //   this._entryPointResult = result
+    // }
+    let wasDeployException = false
     if (message.depth === 0) {
       if (this._targetMessageResult) {
         if (result.execResult.logs) {
@@ -252,13 +258,24 @@ export default class EVM {
           returnData = returnData.slice(160)
         }
 
+        result.execResult.exceptionError
+
+        const EOAReturnedFalse = this._accountMessageResult?.execResult.returnValue.slice(0,32).toString('hex') == '00'.repeat(32)
+        wasDeployException = EOAReturnedFalse && !this._targetMessageResult.execResult.exceptionError 
+        console.log(`detected deploy exception?: ${wasDeployException}`)
+        const exceptionError = wasDeployException
+          ? new VmError(ERROR.REVERT) 
+          : this._targetMessageResult.execResult.exceptionError
+
+        console.log(`exception error is: ${JSON.stringify(exceptionError)}`)
+
         result = {
           ...result,
           createdAddress: this._targetMessageResult.createdAddress,
           execResult: {
             ...result.execResult,
             returnValue: returnData,
-            exceptionError: this._targetMessageResult.execResult.exceptionError,
+            exceptionError
           },
         }
       } else {
@@ -268,11 +285,18 @@ export default class EVM {
     }
 
     const err = result.execResult.exceptionError
-    if (err) {
+    if (err && !wasDeployException) {
       result.execResult.logs = []
       await this._state.revert()
     } else {
       await this._state.commit()
+    }
+
+    if (
+      message.depth == 1
+      && message.to.toString() != this._vm.contracts.OVM_StateManager.address.toString()
+    ) { 
+      this._accountMessageResult = result
     }
 
     await this._vm._emit('afterMessage', result)
