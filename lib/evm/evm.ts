@@ -153,66 +153,6 @@ export default class EVM {
         ? this._vm.getContractByName('mockOVM_ECDSAContractAccount')
         : this._vm.getContract(message.to)
 
-      // if (target) {
-      //   let methodId = '0x' + message.data.slice(0, 4).toString('hex')
-
-      //   let fragment = target.iface.getFunction(methodId)
-
-      //   // try {
-      //   //   fragment = target.iface.getFunction(methodId)
-      //   // } catch (err) {
-      //   //   console.error(
-      //   //     `\nCaught decoding error for ${target.name} with data: ${toHexString(
-      //   //       message.data,
-      //   //     )}, ${err}`,
-      //   //   )
-      //   //   console.error(
-      //   //     `Attempting to try again with function parameters removed in sighash calculation.`,
-      //   //   )
-
-      //   //   let correctedMethodId: string | undefined
-      //   //   for (const functionName of Object.keys(target.iface.functions)) {
-      //   //     const possibleMethodId = ethers.utils.id(functionName.split('(')[0] + '()').slice(0, 10)
-      //   //     if (possibleMethodId === methodId) {
-      //   //       correctedMethodId = ethers.utils.id(functionName).slice(0, 10)
-      //   //       break
-      //   //     }
-      //   //   }
-
-      //   //   if (!correctedMethodId) {
-      //   //     console.error(`Cannot find a suitable function match, throwing.`)
-      //   //     throw err
-      //   //   }
-
-      //   //   try {
-      //   //     fragment = target.iface.getFunction(correctedMethodId)
-      //   //     methodId = correctedMethodId
-      //   //     console.log(
-      //   //       `Found a suitable function match: ${target.name}.${fragment.name}, continuing.`,
-      //   //     )
-      //   //   } catch (err) {
-      //   //     console.error(
-      //   //       `Second decoding attempt failed for ${target.name} with data: ${toHexString(
-      //   //         message.data,
-      //   //       )}, ${err}`,
-      //   //     )
-      //   //     throw err
-      //   //   }
-      //   // }
-
-      //   // message.data = Buffer.concat([fromHexString(methodId), message.data.slice(4)])
-      //   const functionArgs = target.iface.decodeFunctionData(fragment, toHexString(message.data))
-
-      //   console.log(`\nCalling ${target.name}.${fragment.name} with args: ${functionArgs}`)
-      //   console.log(`as raw data this is: ${toHexString(message.data)}`)
-      // } else {
-      //   console.log(
-      //     `Calling unknown contract (${toHexString(message.to)}) with data: ${toHexString(
-      //       message.data,
-      //     )}`,
-      //   )
-      // }
-
       if (target && target.name === 'OVM_StateManager') {
         result = {
           gasUsed: new BN(0),
