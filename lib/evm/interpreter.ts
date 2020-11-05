@@ -357,29 +357,6 @@ export default class Interpreter {
           )}`,
         )
       }
-
-
-
-
-      // if (target.equals(this._vm.contracts.OVM_ExecutionManager.address)) {
-      //   const sighash = toHexString(calldata.slice(0, 4))
-      //   const fragment = this._vm.contracts.OVM_ExecutionManager.iface.getFunction(sighash)
-      //   const functionName = fragment.name
-      //   const functionArgs = this._vm.contracts.OVM_ExecutionManager.iface.decodeFunctionData(
-      //     fragment,
-      //     toHexString(calldata),
-      //   ) as any[]
-
-      //   loggers.callLogger.log(
-      //     `CALL to OVM_ExecutionManager.${functionName}\nDecoded calldata: ${functionArgs}\nEncoded calldata: ${toHexString(
-      //       calldata.slice(4),
-      //     )}`,
-      //   )
-      // } else {
-      //   loggers.callLogger.log(
-      //     `CALL to ${toHexAddress(target)} with data:\n${toHexString(calldata)}`,
-      //   )
-      // }
     } else {
       loggers.stepLogger.log(
         `opcode: ${op.padEnd(10, ' ')}  pc: ${step.pc.toString().padEnd(10, ' ')} gasLeft: ${step.gasLeft.toString()}\nstack: [${stack

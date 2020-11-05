@@ -220,7 +220,7 @@ export default class EVM {
           },
         }
       } else {
-        // todo: break out error cases and surface here
+        // todo: detect OVM-specific error cases and surface here
         result.execResult.exceptionError = new VmError(ERROR.OVM_ERROR)
       }
     }
