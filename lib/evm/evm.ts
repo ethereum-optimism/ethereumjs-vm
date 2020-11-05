@@ -184,10 +184,6 @@ export default class EVM {
       this._targetMessageResult = result
     }
 
-    // if (message.depth === 1 && (await this._state.getContractCode(message.to)).toString('hex') == this._vm.contracts.OVM_ECDSAContractAccount.code.toString('hex')) {
-    //   console.log(`found and set EOA acct message`)
-    //   this._entryPointResult = result
-    // }
     let wasDeployException = false
     if (message.depth === 0) {
       if (this._targetMessageResult) {
