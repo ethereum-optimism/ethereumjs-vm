@@ -64,9 +64,9 @@ export default class Message {
     const calldata = vm.contracts.OVM_ExecutionManager.iface.encodeFunctionData('run', [
       {
         timestamp: new BN(block.header.timestamp).toNumber(),
-        number: new BN(block.header.number).toNumber(),
+        blockNumber: new BN(block.header.number).toNumber(),
         l1QueueOrigin: 0,
-        l1Txorigin: toHexString(this.caller),
+        l1TxOrigin: toHexString(this.caller),
         entrypoint: toHexString(this.caller),
         gasLimit: toHexString(notTooBigGasLimit.toBuffer()),
         data: vm.contracts.mockOVM_ECDSAContractAccount.iface.encodeFunctionData('execute', [

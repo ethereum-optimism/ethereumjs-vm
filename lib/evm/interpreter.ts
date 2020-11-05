@@ -268,9 +268,11 @@ export default class Interpreter {
       this._firstStep = false
     }
 
+    const isEntryPoint = step.depth === 0
+
     if (!(step.depth in this._loggers)) {
       const contractName = this._vm.getContract(step.address)
-      const description = step.depth === 0 ? 'OVM TX starts with' : 'EVM STEPS for'
+      const description = isEntryPoint ? 'OVM TX starts with' : 'EVM STEPS for'
 
       const addressStart = step.address.slice(0, 3).toString('hex')
       const addressEnd = step.address.slice(step.address.length - 3).toString('hex')
@@ -280,7 +282,11 @@ export default class Interpreter {
       const memSizeLogger = new Logger(callLogger.namespace + ':memorysize')
       const gasLogger = new Logger(callLogger.namespace + ':steps')
 
-      stepLogger.open(`${description} ${contractName} at depth ${step.depth}`)
+      if(isEntryPoint) {
+        callLogger.open(`${description} ${contractName} at depth ${step.depth}`)
+      } else {
+        stepLogger.open(`${description} ${contractName} at depth ${step.depth}`)
+      }
 
       this._loggers[step.depth] = {
         callLogger,
@@ -296,17 +302,27 @@ export default class Interpreter {
     const memory = step.memory
     const op = step.opcode.name
 
-    if (op === 'RETURN' || op === 'REVERT') {
+    if (['RETURN','REVERT','STOP','INVALID'].includes(op)) {
       if (step.depth === 0) {
         loggers.gasLogger.log(`OVM tx completed having used ${this._initialGas.sub(step.gasLeft).toString()} gas.`)
       }
 
-      const offset = stack[0].toNumber()
-      const length = stack[1].toNumber()
-      const data = Buffer.from(memory.slice(offset, offset + length))
+      if (['RETURN','REVERT'].includes(op)) {
+        const offset = stack[0].toNumber()
+        const length = stack[1].toNumber()
+        const data = Buffer.from(memory.slice(offset, offset + length))
+        loggers.callLogger.log(`${op} with data: ${toHexString(data)}`)
+      } else {
+        loggers.callLogger.log(op)
+      }
 
-      loggers.stepLogger.close()
-      loggers.callLogger.log(`${op} with data: ${toHexString(data)}`)
+
+      if(isEntryPoint) {
+        loggers.callLogger.close()
+      } else {
+        loggers.stepLogger.close()
+      }
+
       delete this._loggers[step.depth]
     } else if (op === 'CALL') {
       const target = stack[1].toBuffer()
