@@ -260,7 +260,7 @@ export default class Interpreter {
 
   async _logStep(step: InterpreterStep): Promise<void> {
     if (env.DEBUG_OVM != 'true') {
-      return 
+      return
     }
 
     if (this._firstStep && step.depth == 0) {
@@ -276,13 +276,15 @@ export default class Interpreter {
 
       const addressStart = step.address.slice(0, 3).toString('hex')
       const addressEnd = step.address.slice(step.address.length - 3).toString('hex')
-      const callLogger = new Logger(logger.namespace + ':0x' + addressStart + '..' + addressEnd + ':d' + step.depth + ':calls')
+      const callLogger = new Logger(
+        logger.namespace + ':0x' + addressStart + '..' + addressEnd + ':d' + step.depth + ':calls',
+      )
       const stepLogger = new Logger(callLogger.namespace + ':steps')
       const memLogger = new Logger(callLogger.namespace + ':memory')
       const memSizeLogger = new Logger(callLogger.namespace + ':memorysize')
       const gasLogger = new Logger(callLogger.namespace + ':steps')
 
-      if(isEntryPoint) {
+      if (isEntryPoint) {
         callLogger.open(`${description} ${contractName} at depth ${step.depth}`)
       } else {
         stepLogger.open(`${description} ${contractName} at depth ${step.depth}`)
@@ -293,7 +295,7 @@ export default class Interpreter {
         stepLogger,
         memLogger,
         gasLogger,
-        memSizeLogger
+        memSizeLogger,
       }
     }
 
@@ -302,12 +304,14 @@ export default class Interpreter {
     const memory = step.memory
     const op = step.opcode.name
 
-    if (['RETURN','REVERT','STOP','INVALID'].includes(op)) {
+    if (['RETURN', 'REVERT', 'STOP', 'INVALID'].includes(op)) {
       if (step.depth === 0) {
-        loggers.gasLogger.log(`OVM tx completed having used ${this._initialGas.sub(step.gasLeft).toString()} gas.`)
+        loggers.gasLogger.log(
+          `OVM tx completed having used ${this._initialGas.sub(step.gasLeft).toString()} gas.`,
+        )
       }
 
-      if (['RETURN','REVERT'].includes(op)) {
+      if (['RETURN', 'REVERT'].includes(op)) {
         const offset = stack[0].toNumber()
         const length = stack[1].toNumber()
         const data = Buffer.from(memory.slice(offset, offset + length))
@@ -316,8 +320,7 @@ export default class Interpreter {
         loggers.callLogger.log(op)
       }
 
-
-      if(isEntryPoint) {
+      if (isEntryPoint) {
         loggers.callLogger.close()
       } else {
         loggers.stepLogger.close()
@@ -340,26 +343,31 @@ export default class Interpreter {
       if (targetContract) {
         let methodId = '0x' + calldata.slice(0, 4).toString('hex')
         let fragment = targetContract.iface.getFunction(methodId)
-        
+
         let logString
         try {
-          const decodedArgs = targetContract.iface.decodeFunctionData(fragment, toHexString(calldata))
+          const decodedArgs = targetContract.iface.decodeFunctionData(
+            fragment,
+            toHexString(calldata),
+          )
           logString = `CALL to ${targetContract.name}.${fragment.name} with args: ${decodedArgs}`
         } catch {
-          logString = `CALL to ${targetContract.name}.${fragment.name} with raw data (failed to decode): 0x${calldata.toString('hex')}`
+          logString = `CALL to ${targetContract.name}.${
+            fragment.name
+          } with raw data (failed to decode): 0x${calldata.toString('hex')}`
         }
 
         loggers.callLogger.log(logString)
       } else {
         loggers.callLogger.log(
-          `CALL to unknown contract (${toHexString(target)}) with data: ${toHexString(
-            calldata
-          )}`,
+          `CALL to unknown contract (${toHexString(target)}) with data: ${toHexString(calldata)}`,
         )
       }
     } else {
       loggers.stepLogger.log(
-        `opcode: ${op.padEnd(10, ' ')}  pc: ${step.pc.toString().padEnd(10, ' ')} gasLeft: ${step.gasLeft.toString()}\nstack: [${stack
+        `opcode: ${op.padEnd(10, ' ')}  pc: ${step.pc
+          .toString()
+          .padEnd(10, ' ')} gasLeft: ${step.gasLeft.toString()}\nstack: [${stack
           .map((el, idx) => {
             return ` ${idx}: ${toHexString(el)}`
           })
