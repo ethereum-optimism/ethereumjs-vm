@@ -13,8 +13,9 @@ import Account from 'ethereumjs-account'
 import { Logger } from '../ovm/utils/logger'
 import { env } from 'process'
 import { toHexAddress, toHexString } from '../ovm/utils/buffer-utils'
+import { info } from 'console'
 
-const logger = new Logger('ethjs-ovm:interpreter')
+const logger = new Logger('js-ovm:intrp')
 
 export interface InterpreterOpts {
   pc?: number
@@ -67,8 +68,12 @@ export default class Interpreter {
       callLogger: Logger
       stepLogger: Logger
       memLogger: Logger
+      memSizeLogger: Logger
+      gasLogger: Logger
     }
   }
+  _firstStep: boolean
+  _initialGas: BN
 
   constructor(vm: any, eei: EEI) {
     this._vm = vm // TODO: remove when not needed
@@ -90,6 +95,8 @@ export default class Interpreter {
     }
 
     this._loggers = {}
+    this._firstStep = true
+    this._initialGas = new BN(0)
   }
 
   async run(code: Buffer, opts: InterpreterOpts = {}): Promise<InterpreterResult> {
@@ -207,7 +214,7 @@ export default class Interpreter {
     }
 
     try {
-      this._logStep(eventObj)
+      await this._logStep(eventObj)
     } catch (err) {
       logger.log(`STEP LOGGING ERROR: ${err.toString()}`)
     }
@@ -251,25 +258,42 @@ export default class Interpreter {
     return jumps
   }
 
-  _logStep(step: InterpreterStep): void {
-    if (!env.DEBUG?.includes(logger.namespace) && !logger.enabled) {
-      return
+  async _logStep(step: InterpreterStep): Promise<void> {
+    if (env.DEBUG_OVM != 'true') {
+      return 
     }
 
-    if (!(step.depth in this._loggers)) {
-      const contractName = this._vm.getContractName(step.address)
-      const description = step.depth === 0 ? 'OVM TX starts with' : 'EVM STEPS for'
+    if (this._firstStep && step.depth == 0) {
+      this._initialGas = step.gasLeft
+      this._firstStep = false
+    }
 
-      const callLogger = new Logger(logger.namespace + ':calls')
+    const isEntryPoint = step.depth === 0
+
+    if (!(step.depth in this._loggers)) {
+      const contractName = this._vm.getContract(step.address)
+      const description = isEntryPoint ? 'OVM TX starts with' : 'EVM STEPS for'
+
+      const addressStart = step.address.slice(0, 3).toString('hex')
+      const addressEnd = step.address.slice(step.address.length - 3).toString('hex')
+      const callLogger = new Logger(logger.namespace + ':0x' + addressStart + '..' + addressEnd + ':d' + step.depth + ':calls')
       const stepLogger = new Logger(callLogger.namespace + ':steps')
       const memLogger = new Logger(callLogger.namespace + ':memory')
+      const memSizeLogger = new Logger(callLogger.namespace + ':memorysize')
+      const gasLogger = new Logger(callLogger.namespace + ':steps')
 
-      callLogger.open(`${description} ${contractName} at depth ${step.depth}`)
+      if(isEntryPoint) {
+        callLogger.open(`${description} ${contractName} at depth ${step.depth}`)
+      } else {
+        stepLogger.open(`${description} ${contractName} at depth ${step.depth}`)
+      }
 
       this._loggers[step.depth] = {
         callLogger,
         stepLogger,
         memLogger,
+        gasLogger,
+        memSizeLogger
       }
     }
 
@@ -278,55 +302,79 @@ export default class Interpreter {
     const memory = step.memory
     const op = step.opcode.name
 
-    if (op === 'RETURN' || op === 'REVERT') {
-      const offset = stack[0].toNumber()
-      const length = stack[1].toNumber()
+    if (['RETURN','REVERT','STOP','INVALID'].includes(op)) {
+      if (step.depth === 0) {
+        loggers.gasLogger.log(`OVM tx completed having used ${this._initialGas.sub(step.gasLeft).toString()} gas.`)
+      }
 
-      const data = Buffer.from(memory.slice(offset, offset + length))
+      if (['RETURN','REVERT'].includes(op)) {
+        const offset = stack[0].toNumber()
+        const length = stack[1].toNumber()
+        const data = Buffer.from(memory.slice(offset, offset + length))
+        loggers.callLogger.log(`${op} with data: ${toHexString(data)}`)
+      } else {
+        loggers.callLogger.log(op)
+      }
 
-      loggers.callLogger.log(`${op} with data: ${toHexString(data)}`)
-      loggers.callLogger.close()
+
+      if(isEntryPoint) {
+        loggers.callLogger.close()
+      } else {
+        loggers.stepLogger.close()
+      }
+
       delete this._loggers[step.depth]
     } else if (op === 'CALL') {
       const target = stack[1].toBuffer()
       const offset = stack[3].toNumber()
       const length = stack[4].toNumber()
-
       const calldata = Buffer.from(memory.slice(offset, offset + length))
 
-      if (target.equals(this._vm.contracts.OVM_ExecutionManager.address)) {
-        const sighash = toHexString(calldata.slice(0, 4))
-        const fragment = this._vm.contracts.OVM_ExecutionManager.iface.getFunction(sighash)
-        const functionName = fragment.name
-        const functionArgs = this._vm.contracts.OVM_ExecutionManager.iface.decodeFunctionData(
-          fragment,
-          toHexString(calldata),
-        ) as any[]
+      const code = await this._state.getContractCode(target)
+      const isECDSAContractAccount =
+        toHexString(code) === this._vm.contracts.mockOVM_ECDSAContractAccount.code
+      const targetContract = isECDSAContractAccount
+        ? this._vm.getContractByName('mockOVM_ECDSAContractAccount')
+        : this._vm.getContract(target)
 
-        loggers.callLogger.log(
-          `CALL to OVM_ExecutionManager.${functionName}\nDecoded calldata: ${functionArgs}\nEncoded calldata: ${toHexString(
-            calldata.slice(4),
-          )}`,
-        )
+      if (targetContract) {
+        let methodId = '0x' + calldata.slice(0, 4).toString('hex')
+        let fragment = targetContract.iface.getFunction(methodId)
+        
+        let logString
+        try {
+          const decodedArgs = targetContract.iface.decodeFunctionData(fragment, toHexString(calldata))
+          logString = `CALL to ${targetContract.name}.${fragment.name} with args: ${decodedArgs}`
+        } catch {
+          logString = `CALL to ${targetContract.name}.${fragment.name} with raw data (failed to decode): 0x${calldata.toString('hex')}`
+        }
+
+        loggers.callLogger.log(logString)
       } else {
         loggers.callLogger.log(
-          `CALL to ${toHexAddress(target)} with data:\n${toHexString(calldata)}`,
+          `CALL to unknown contract (${toHexString(target)}) with data: ${toHexString(
+            calldata
+          )}`,
         )
       }
     } else {
       loggers.stepLogger.log(
-        `opcode: ${op.padEnd(20, ' ')}\npc: ${step.pc}\nstack: [${stack
+        `opcode: ${op.padEnd(10, ' ')}  pc: ${step.pc.toString().padEnd(10, ' ')} gasLeft: ${step.gasLeft.toString()}\nstack: [${stack
           .map((el, idx) => {
-            return `${idx}: ${toHexString(el)}`
+            return ` ${idx}: ${toHexString(el)}`
           })
-          .join('')}]\n`,
+          .join('')}]`,
       )
 
       if (
         this._printNextMemory ||
         ['CALL', 'CREATE', 'CREATE2', 'STATICCALL', 'DELEGATECALL'].includes(op)
       ) {
-        loggers.memLogger.log(`memory: [${toHexString(Buffer.from(memory))}]`)
+        const memsize = memory.length
+        if (memsize > 20000) {
+          loggers.memSizeLogger.log(`MSIZE of ${memsize} in memory modifying step.`)
+        }
+        loggers.memLogger.log(`$[${toHexString(Buffer.from(memory))}]`)
       }
 
       this._printNextMemory = ['MSTORE', 'CALLDATACOPY', 'RETURNDATACOPY', 'CODECOPY'].includes(op)

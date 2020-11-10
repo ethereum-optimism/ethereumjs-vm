@@ -107,6 +107,7 @@ export default class EVM {
   // Custom variables
   _targetMessage: Message | undefined
   _targetMessageResult: EVMResult | undefined
+  _accountMessageResult: EVMResult | undefined
 
   constructor(vm: any, txContext: TxContext, block: any) {
     this._vm = vm
@@ -152,71 +153,12 @@ export default class EVM {
         ? this._vm.getContractByName('mockOVM_ECDSAContractAccount')
         : this._vm.getContract(message.to)
 
-      if (target) {
-        let methodId = '0x' + message.data.slice(0, 4).toString('hex')
-
-        let fragment: any
-        try {
-          fragment = target.iface.getFunction(methodId)
-        } catch (err) {
-          console.error(
-            `\nCaught decoding error for ${target.name} with data: ${toHexString(
-              message.data,
-            )}, ${err}`,
-          )
-          console.error(
-            `Attempting to try again with function parameters removed in sighash calculation.`,
-          )
-
-          let correctedMethodId: string | undefined
-          for (const functionName of Object.keys(target.iface.functions)) {
-            const possibleMethodId = ethers.utils.id(functionName.split('(')[0] + '()').slice(0, 10)
-            if (possibleMethodId === methodId) {
-              correctedMethodId = ethers.utils.id(functionName).slice(0, 10)
-              break
-            }
-          }
-
-          if (!correctedMethodId) {
-            console.error(`Cannot find a suitable function match, throwing.`)
-            throw err
-          }
-
-          try {
-            fragment = target.iface.getFunction(correctedMethodId)
-            methodId = correctedMethodId
-            console.log(
-              `Found a suitable function match: ${target.name}.${fragment.name}, continuing.`,
-            )
-          } catch (err) {
-            console.error(
-              `Second decoding attempt failed for ${target.name} with data: ${toHexString(
-                message.data,
-              )}, ${err}`,
-            )
-            throw err
-          }
-        }
-
-        message.data = Buffer.concat([fromHexString(methodId), message.data.slice(4)])
-
-        const functionArgs = target.iface.decodeFunctionData(fragment, toHexString(message.data))
-
-        console.log(`\nCalling ${target.name}.${fragment.name} with args: ${functionArgs}`)
-      } else {
-        console.log(
-          `Calling unknown contract (${toHexString(message.to)}) with data: ${toHexString(
-            message.data,
-          )}`,
-        )
-      }
-
       if (target && target.name === 'OVM_StateManager') {
         result = {
           gasUsed: new BN(0),
           execResult: {
             gasUsed: new BN(0),
-            returnValue: await this._vm.ovmStateManager.handleCall(message),
+            returnValue: await this._vm.ovmStateManager.handleCall(message, this._tx),
           },
         } as EVMResult
       } else {
@@ -230,10 +172,19 @@ export default class EVM {
     // instead of `ExecResult`.
     result.execResult.gasRefund = this._refund.clone()
 
+    const err = result.execResult.exceptionError
+    if (err) {
+      result.execResult.logs = []
+      await this._state.revert()
+    } else {
+      await this._state.commit()
+    }
+
     if (isTargetMessage) {
       this._targetMessageResult = result
     }
 
+    let wasDeployException = false
     if (message.depth === 0) {
       if (this._targetMessageResult) {
         if (result.execResult.logs) {
@@ -242,26 +193,43 @@ export default class EVM {
           })
         }
 
+        // OVM reverts have some flag-related metadata before the revert data--strip this out for providers etc.
+        let returnData: Buffer = this._targetMessageResult.execResult.returnValue
+        if (
+          !!this._targetMessageResult.execResult.exceptionError
+          && returnData.byteLength >= 160
+        ) {
+          returnData = returnData.slice(160)
+        }
+
+        result.execResult.exceptionError
+
+        const EOAReturnedFalse = this._accountMessageResult?.execResult.returnValue.slice(0,32).toString('hex') == '00'.repeat(32)
+        wasDeployException = EOAReturnedFalse && !this._targetMessageResult.execResult.exceptionError 
+        const exceptionError = wasDeployException
+          ? new VmError(ERROR.REVERT) 
+          : this._targetMessageResult.execResult.exceptionError
+
         result = {
           ...result,
           createdAddress: this._targetMessageResult.createdAddress,
           execResult: {
             ...result.execResult,
-            returnValue: this._targetMessageResult.execResult.returnValue,
-            exceptionError: this._targetMessageResult.execResult.exceptionError,
+            returnValue: returnData,
+            exceptionError
           },
         }
       } else {
+        // todo: detect OVM-specific error cases and surface here
         result.execResult.exceptionError = new VmError(ERROR.OVM_ERROR)
       }
     }
 
-    const err = result.execResult.exceptionError
-    if (err) {
-      result.execResult.logs = []
-      await this._state.revert()
-    } else {
-      await this._state.commit()
+    if (
+      message.depth == 1
+      && message.to.toString() != this._vm.contracts.OVM_StateManager.address.toString()
+    ) { 
+      this._accountMessageResult = result
     }
 
     await this._vm._emit('afterMessage', result)
@@ -494,7 +462,7 @@ export default class EVM {
   async _generateAddress(message: Message): Promise<Buffer> {
     return fromHexString(
       toHexAddress(
-        await this._vm.pStateManager.getContractStorage(
+        await this._state.getContractStorage(
           this._vm.contracts.OVM_ExecutionManager.address,
           Buffer.from('00'.repeat(31) + '0f', 'hex'),
         ),

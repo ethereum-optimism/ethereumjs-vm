@@ -59,14 +59,16 @@ export default class Message {
       throw new Error('Cannot create a message because the ExecutionManager does not exist.')
     }
 
+    const notTooBigGasLimit = BN.min(this.gasLimit, new BN(vm.emGasLimit))
+
     const calldata = vm.contracts.OVM_ExecutionManager.iface.encodeFunctionData('run', [
       {
         timestamp: new BN(block.header.timestamp).toNumber(),
-        number: new BN(block.header.number).toNumber(),
+        blockNumber: new BN(block.header.number).toNumber(),
         l1QueueOrigin: 0,
-        l1Txorigin: toHexString(this.caller),
+        l1TxOrigin: toHexString(this.caller),
         entrypoint: toHexString(this.caller),
-        gasLimit: this.gasLimit.toNumber(),
+        gasLimit: toHexString(notTooBigGasLimit.toBuffer()),
         data: vm.contracts.mockOVM_ECDSAContractAccount.iface.encodeFunctionData('execute', [
           toHexString(this.data),
           0,

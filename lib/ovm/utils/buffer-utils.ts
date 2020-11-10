@@ -1,6 +1,7 @@
 export const toHexAddress = (buf: any): string => {
+  // pad shorter values out
   if (buf.length < 20) {
-    throw new Error('Buffer must be at least 20 bytes to be an address.')
+    buf = Buffer.concat([Buffer.alloc(31), buf])
   }
 
   return (

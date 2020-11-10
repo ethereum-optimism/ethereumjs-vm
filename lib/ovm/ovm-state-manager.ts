@@ -39,7 +39,7 @@ export class OvmStateManager {
     }
   }
 
-  async handleCall(message: Message): Promise<any> {
+  async handleCall(message: Message, context: any): Promise<any> {
     const methodId = '0x' + message.data.slice(0, 4).toString('hex')
     const fragment = this._iface.getFunction(methodId)
     const functionArgs = this._iface.decodeFunctionData(fragment, toHexString(message.data))
@@ -50,8 +50,11 @@ export class OvmStateManager {
       ret = ret === null || ret === undefined ? ret : [ret]
     }
 
+    if (fragment.name == 'owner') {
+      ret = ['0x' + context.origin.toString('hex')]
+    }
+
     try {
-      console.log(`  ← Responding with: ${ret}`)
       const encodedRet = this._iface.encodeFunctionResult(fragment, ret)
       return fromHexString(encodedRet)
     } catch (err) {
