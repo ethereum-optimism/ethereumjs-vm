@@ -1,6 +1,6 @@
 {
   "name": "@eth-optimism/ethereumjs-vm",
-  "version": "4.2.0-alpha.0",
+  "version": "4.2.0-alpha.1",
   "description": "An Ethereum VM implementation",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -9,7 +9,7 @@
   ],
   "scripts": {
     "build": "ethereumjs-config-build",
-    "prepublishOnly": "npm run lint && npm run build && npm run test:buildIntegrity",
+    "prepublishOnly": "npm run lint && npm run build",
     "coverage": "nyc npm run coverage:test && nyc report --reporter=lcov",
     "coverage:test": "npm run build && tape './tests/api/**/*.js' ./tests/tester.js --state --dist",
     "docs:build": "typedoc lib",
