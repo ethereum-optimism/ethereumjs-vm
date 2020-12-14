@@ -250,8 +250,8 @@ export default class VM extends AsyncEventEmitter {
       for (const [key, val] of Object.entries(account.storage)) {
         await this.pStateManager.putContractStorage(
           fromHexString(account.address),
-          Buffer.from(key, 'hex'),
-          Buffer.from(val, 'hex'),
+          fromHexString(key),
+          fromHexString(val),
         )
       }
     }

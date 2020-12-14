@@ -1,6 +1,6 @@
 /* External Imports */
 import BN = require('bn.js')
-import { BigNumber } from 'ethers'
+import { BigNumber, ethers } from 'ethers'
 
 /* Internal Imports */
 import VM from '../index'
@@ -36,7 +36,12 @@ export class OvmStateManager {
       testAndSetAccountChanged: this.testAndSetAccountChanged.bind(this),
       testAndSetContractStorageLoaded: this.testAndSetContractStorageLoaded.bind(this),
       testAndSetContractStorageChanged: this.testAndSetContractStorageChanged.bind(this),
+      isAuthenticated: this.isAuthenticated.bind(this)
     }
+  }
+
+  async isAuthenticated(message: Message, context: any): Promise<boolean> {
+    return true
   }
 
   async handleCall(message: Message, context: any): Promise<any> {
@@ -48,10 +53,6 @@ export class OvmStateManager {
     if (fragment.name in this._handlers) {
       ret = await this._handlers[fragment.name](...functionArgs)
       ret = ret === null || ret === undefined ? ret : [ret]
-    }
-
-    if (fragment.name == 'owner') {
-      ret = ['0x' + context.origin.toString('hex')]
     }
 
     try {
