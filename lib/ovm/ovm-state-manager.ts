@@ -36,7 +36,7 @@ export class OvmStateManager {
       testAndSetAccountChanged: this.testAndSetAccountChanged.bind(this),
       testAndSetContractStorageLoaded: this.testAndSetContractStorageLoaded.bind(this),
       testAndSetContractStorageChanged: this.testAndSetContractStorageChanged.bind(this),
-      isAuthenticated: this.isAuthenticated.bind(this)
+      isAuthenticated: this.isAuthenticated.bind(this),
     }
   }
 
