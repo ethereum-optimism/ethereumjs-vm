@@ -108,6 +108,7 @@ export default class EVM {
   _targetMessage: Message | undefined
   _targetMessageResult: EVMResult | undefined
   _accountMessageResult: EVMResult | undefined
+  _lastOvmREVERTData: Buffer | undefined
 
   constructor(vm: any, txContext: TxContext, block: any) {
     this._vm = vm
@@ -142,6 +143,11 @@ export default class EVM {
     let isTargetMessage = !this._targetMessage && message.isTargetMessage()
     if (isTargetMessage) {
       this._targetMessage = message
+    }
+
+    if (message.isCallToOvmREVERT()) {
+      // slice off 4 bytes methodId + 64 bytes abi encode --> gets the raw data passed in
+      this._lastOvmREVERTData = message.data.slice(68)
     }
 
     let result
@@ -199,8 +205,6 @@ export default class EVM {
           returnData = returnData.slice(160)
         }
 
-        result.execResult.exceptionError
-
         const EOAReturnedFalse =
           this._accountMessageResult?.execResult.returnValue.slice(0, 32).toString('hex') ==
           '00'.repeat(32)
@@ -209,6 +213,12 @@ export default class EVM {
         const exceptionError = wasDeployException
           ? new VmError(ERROR.REVERT)
           : this._targetMessageResult.execResult.exceptionError
+
+          // The OVM does not allow for EVM creation messages that revert.
+          // We can recover the initcode's intended revert data by checking the last call to ovmREVERT.
+          if (wasDeployException && !!this._lastOvmREVERTData) {
+            returnData = this._lastOvmREVERTData
+          }
 
         result = {
           ...result,
