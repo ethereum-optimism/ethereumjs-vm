@@ -19,6 +19,7 @@ const Trie = require('merkle-patricia-tree/secure.js')
 // Custom imports
 import { Interface } from '@ethersproject/abi'
 import { fromHexString } from './ovm/utils/buffer-utils'
+import { BigNumber } from 'ethers'
 
 interface OVMContract {
   name: string
@@ -255,6 +256,20 @@ export default class VM extends AsyncEventEmitter {
         )
       }
     }
+
+    // Set maxTransactionGasLimit
+    await this.pStateManager.putContractStorage(
+      fromHexString('0xdeaddeaddeaddeaddeaddeaddeaddeaddead0005'),
+      fromHexString('0x0000000000000000000000000000000000000000000000000000000000000004'),
+      fromHexString(BigNumber.from(this.emGasLimit).toHexString()),
+    )
+
+    // Set maxGasPerQueuePerEpoch
+    await this.pStateManager.putContractStorage(
+      fromHexString('0xdeaddeaddeaddeaddeaddeaddeaddeaddead0005'),
+      fromHexString('0x0000000000000000000000000000000000000000000000000000000000000005'),
+      fromHexString(BigNumber.from(this.emGasLimit).toHexString()),
+    )
   }
 
   /**
