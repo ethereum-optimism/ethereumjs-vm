@@ -6,6 +6,8 @@ import VM from '../index'
 import { toHexString, fromHexString } from '../ovm/utils/buffer-utils'
 import { NULL_ADDRESS } from '../ovm/utils/constants'
 
+const ovmREVERTMethodId = Buffer.from('2a2a7adb', 'hex')
+
 export default class Message {
   to: Buffer
   value: BN
@@ -52,6 +54,10 @@ export default class Message {
       (!this.to && !this.originalTargetAddress) ||
       (this.to && this.originalTargetAddress && this.to.equals(this.originalTargetAddress))
     )
+  }
+
+  isCallToOvmREVERT(): boolean {
+    return this.data.slice(0, 4).equals(ovmREVERTMethodId)
   }
 
   toOvmMessage(vm: VM, block: any): Message {
